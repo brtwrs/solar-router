@@ -125,6 +125,15 @@ def _demp(huidig: float, doel: float, gain: float) -> float:
     return huidig + (doel - huidig) * gain
 
 
+def _dode_zone(c: Consumer) -> float:
+    """Waarde waaronder aanzetten geen zin meer heeft.
+
+    Een procent van het maximum, met een ondergrens van 10 W. Zonder dit
+    blijft een gedempte regeling eeuwig halveren richting nul.
+    """
+    return max(10.0, c.power_max * 0.01)
+
+
 def _decide_one(c: Consumer, remaining: float, gain: float = 1.0) -> Decision:
     """Work out what this consumer gets from what is left."""
     if not c.managed:
@@ -140,6 +149,12 @@ def _decide_one(c: Consumer, remaining: float, gain: float = 1.0) -> Decision:
             give = 0.0
         elif give < c.power_min:
             give = c.power_min
+
+        # Dempen richting nul haalt nul nooit: 176 -> 88 -> 44 -> 22 -> 11 ...
+        # Onder de dode zone gewoon uitzetten, anders blijft hij eeuwig
+        # zinloze waarden schrijven.
+        if give < _dode_zone(c):
+            give = 0.0
 
         d = Decision(c.key, give, "modulating" if give else "below minimum")
         d.claim = _claim_for(c, give)

@@ -350,3 +350,33 @@ def test_target_below_minimum_still_switches_off():
     """Dempen mag uit-zetten niet in de weg zitten."""
     d = by_key(allocate(300, [dial("boiler", pmin=800, pmax=3000, allocated=3000)], gain=0.5))["boiler"]
     assert d.allocated == 0
+
+
+# --------------------------------------------------------------- dode zone
+
+def test_damping_towards_zero_actually_reaches_zero():
+    """Zonder dode zone: 176 -> 88 -> 44 -> 22 -> ... eeuwig."""
+    stand = 176.0
+    for _ in range(6):
+        d = by_key(allocate(0, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5))["boiler"]
+        stand = d.allocated
+        if stand == 0:
+            break
+    assert stand == 0
+
+
+def test_dead_zone_scales_with_the_maximum():
+    """1% van het maximum, dus 30 W bij een boiler van 3 kW."""
+    d = by_key(allocate(50, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))["boiler"]
+    assert d.allocated == 0  # 0 + 0.5*50 = 25, onder de 30
+
+
+def test_small_device_keeps_a_sane_floor():
+    """Bij een klein apparaat blijft de dode zone 10 W, niet 1 W."""
+    d = by_key(allocate(16, [dial("pomp", pmax=100, allocated=0)], gain=0.5))["pomp"]
+    assert d.allocated == 0  # 8 W, onder de 10
+
+
+def test_normal_values_are_untouched_by_the_dead_zone():
+    d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))["boiler"]
+    assert d.allocated == 1000
