@@ -17,7 +17,6 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_CONTROL,
     CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
@@ -30,8 +29,6 @@ from .const import (
     CONF_PRIORITY,
     CONF_RESERVE,
     CONF_SWITCH_ENTITY,
-    CONTROL_NUMBER,
-    CONTROL_SWITCH,
     DEFAULT_EXPORT_IS_NEGATIVE,
     DEFAULT_INTERVAL,
     DEFAULT_MIN_OFF,
@@ -125,15 +122,6 @@ class ConsumerSubentryFlow(ConfigSubentryFlow):
         return vol.Schema(
             {
                 vol.Required(CONF_NAME, default=d.get(CONF_NAME, "")): str,
-                vol.Required(
-                    CONF_CONTROL, default=d.get(CONF_CONTROL, CONTROL_NUMBER)
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[CONTROL_NUMBER, CONTROL_SWITCH],
-                        translation_key="control",
-                        mode="list",
-                    )
-                ),
                 vol.Optional(
                     CONF_NUMBER_ENTITY, default=d.get(CONF_NUMBER_ENTITY)
                 ): selector.EntitySelector(
@@ -181,15 +169,24 @@ class ConsumerSubentryFlow(ConfigSubentryFlow):
         )
 
     def _validate(self, user_input: dict[str, Any]) -> dict[str, str]:
+        """Fill in what you have; the mode follows from that.
+
+        A dial alone is fine (zero means off), a switch alone is fine, and both
+        together means the switch gates it while the dial sets how hard it runs.
+        """
         errors: dict[str, str] = {}
-        if user_input[CONF_CONTROL] == CONTROL_NUMBER:
-            if not user_input.get(CONF_NUMBER_ENTITY):
-                errors[CONF_NUMBER_ENTITY] = "number_required"
-        elif not user_input.get(CONF_SWITCH_ENTITY):
-            errors[CONF_SWITCH_ENTITY] = "switch_required"
+
+        if not user_input.get(CONF_NUMBER_ENTITY) and not user_input.get(
+            CONF_SWITCH_ENTITY
+        ):
+            errors["base"] = "need_one_entity"
 
         if user_input[CONF_POWER_MAX] < user_input[CONF_POWER_MIN]:
             errors[CONF_POWER_MAX] = "max_below_min"
+
+        if not user_input[CONF_POWER_MAX]:
+            errors[CONF_POWER_MAX] = "max_required"
+
         return errors
 
     async def async_step_user(

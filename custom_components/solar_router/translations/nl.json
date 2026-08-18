@@ -16,7 +16,9 @@
         }
       }
     },
-    "abort": { "already_configured": "Solar Router is al ingesteld." }
+    "abort": {
+      "already_configured": "Solar Router is al ingesteld."
+    }
   },
   "options": {
     "step": {
@@ -34,17 +36,19 @@
   "config_subentries": {
     "consumer": {
       "title": "Verbruiker",
-      "initiate_flow": { "user": "Verbruiker toevoegen", "reconfigure": "Verbruiker bewerken" },
+      "initiate_flow": {
+        "user": "Verbruiker toevoegen",
+        "reconfigure": "Verbruiker bewerken"
+      },
       "entry_type": "Verbruiker",
       "step": {
         "user": {
           "title": "Verbruiker toevoegen",
-          "description": "Iets dat overschot kan opnemen. Of een number-entiteit die je hoger en lager kunt zetten, of een schakelaar die alleen aan of uit kan.",
+          "description": "Alles dat overschot kan opnemen. Vul in wat je kunt aansturen: een vermogensinstelling, een schakelaar, of allebei.",
           "data": {
             "name": "Naam",
-            "control": "Hoe wordt het aangestuurd",
-            "number_entity": "Vermogensinstelling",
-            "switch_entity": "Schakelaar",
+            "number_entity": "Vermogensinstelling (optioneel)",
+            "switch_entity": "Schakelaar (optioneel)",
             "power_min": "Minimaal vermogen",
             "power_max": "Maximaal vermogen",
             "priority": "Prioriteit",
@@ -52,8 +56,10 @@
             "min_off": "Minimale uit-tijd"
           },
           "data_description": {
-            "power_min": "Daaronder is aanzetten niet zinvol. Bij aan/uit mag dit nul blijven.",
-            "power_max": "Bij een aan/uit-apparaat: wat het verbruikt als het draait.",
+            "number_entity": "Een number-entiteit die je hoger en lager kunt zetten. Nul is uit, dus een schakelaar is niet nodig.",
+            "switch_entity": "Alleen gebruiken bij een vast verbruik, of naast een vermogensinstelling als aan/uit-poort.",
+            "power_min": "Daaronder is draaien niet zinvol.",
+            "power_max": "Het plafond. Bij alleen een schakelaar: wat het verbruikt als het draait.",
             "priority": "Laagste getal wint. Wordt eerder bediend dan hogere getallen.",
             "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
             "min_off": "Eenmaal gestopt minstens zo lang uit laten."
@@ -63,34 +69,45 @@
           "title": "Verbruiker bewerken",
           "data": {
             "name": "Naam",
-            "control": "Hoe wordt het aangestuurd",
-            "number_entity": "Vermogensinstelling",
-            "switch_entity": "Schakelaar",
+            "number_entity": "Vermogensinstelling (optioneel)",
+            "switch_entity": "Schakelaar (optioneel)",
             "power_min": "Minimaal vermogen",
             "power_max": "Maximaal vermogen",
             "priority": "Prioriteit",
             "min_on": "Minimale aan-tijd",
             "min_off": "Minimale uit-tijd"
+          },
+          "data_description": {
+            "number_entity": "Een number-entiteit die je hoger en lager kunt zetten. Nul is uit, dus een schakelaar is niet nodig.",
+            "switch_entity": "Alleen gebruiken bij een vast verbruik, of naast een vermogensinstelling als aan/uit-poort.",
+            "power_min": "Daaronder is draaien niet zinvol.",
+            "power_max": "Het plafond. Bij alleen een schakelaar: wat het verbruikt als het draait.",
+            "priority": "Laagste getal wint. Wordt eerder bediend dan hogere getallen.",
+            "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
+            "min_off": "Eenmaal gestopt minstens zo lang uit laten."
           }
         }
       },
       "error": {
-        "number_required": "Kies een number-entiteit voor een regelbare verbruiker.",
-        "switch_required": "Kies een schakelaar voor een aan/uit-verbruiker.",
-        "max_below_min": "Maximaal vermogen ligt onder het minimum."
+        "need_one_entity": "Kies een vermogensinstelling, een schakelaar, of allebei.",
+        "max_below_min": "Maximaal vermogen ligt onder het minimum.",
+        "max_required": "Maximaal vermogen is verplicht."
       }
-    }
-  },
-  "selector": {
-    "control": {
-      "options": { "number": "Regelbaar vermogen", "switch": "Alleen aan/uit" }
     }
   },
   "entity": {
     "sensor": {
-      "unused_surplus": { "name": "Ongebruikt overschot" },
-      "allocated": { "name": "Toegewezen vermogen" }
+      "unused_surplus": {
+        "name": "Ongebruikt overschot"
+      },
+      "allocated": {
+        "name": "Toegewezen vermogen"
+      }
     },
-    "switch": { "managed": { "name": "Wordt gestuurd" } }
+    "switch": {
+      "managed": {
+        "name": "Wordt gestuurd"
+      }
+    }
   }
 }

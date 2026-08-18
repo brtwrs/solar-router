@@ -13,7 +13,6 @@ from homeassistant.util import dt as dt_util
 
 from .allocator import Consumer, allocate, budget_from, unused
 from .const import (
-    CONF_CONTROL,
     CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
@@ -25,7 +24,6 @@ from .const import (
     CONF_PRIORITY,
     CONF_RESERVE,
     CONF_SWITCH_ENTITY,
-    CONTROL_NUMBER,
     DEFAULT_EXPORT_IS_NEGATIVE,
     DEFAULT_INTERVAL,
     DEFAULT_MIN_OFF,
@@ -86,25 +84,27 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         """Options win over data, so reconfiguring takes effect."""
         return self.entry.options.get(key, self.entry.data.get(key, default))
 
-    def _read_grid(self) -> float | None:
-        """Grid power in watts, positive meaning export."""
-        entity_id = self._option(CONF_GRID_SENSOR, None)
+    def _numeric(self, entity_id: str | None) -> float | None:
+        """Read an entity as a number, normalising kW to W."""
         if not entity_id:
             return None
-
         state = self.hass.states.get(entity_id)
         if state is None or state.state in ("unknown", "unavailable"):
             return None
-
         try:
             value = float(state.state)
         except (TypeError, ValueError):
             return None
-
         unit = (state.attributes.get("unit_of_measurement") or "").lower()
         if unit in ("kw", "kilowatt"):
             value *= 1000
+        return value
 
+    def _read_grid(self) -> float | None:
+        """Grid power in watts, positive meaning export."""
+        value = self._numeric(self._option(CONF_GRID_SENSOR, None))
+        if value is None:
+            return None
         if self._option(CONF_GRID_EXPORT_IS_NEGATIVE, DEFAULT_EXPORT_IS_NEGATIVE):
             value = -value
         return value
@@ -155,28 +155,40 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
 
         subs = {s.subentry_id: s for s in self._subentries()}
 
-        # Build the input for the allocator.
         consumers: list[Consumer] = []
         for sid, sub in subs.items():
             cfg = sub.data
             st = self.state_for(sid, cfg.get("name", sub.title))
             st.name = cfg.get("name", sub.title)
-            control = cfg.get(CONF_CONTROL, CONTROL_NUMBER)
+
+            number_entity = cfg.get(CONF_NUMBER_ENTITY)
+            switch_entity = cfg.get(CONF_SWITCH_ENTITY)
+            on_now = self._switch_is_on(switch_entity)
+
+            # Compare against what the device is really set to, not against our
+            # own bookkeeping. After a restart those disagree, and trusting the
+            # bookkeeping would leave a device running that should be off.
+            actual = self._numeric(number_entity)
+            if actual is None:
+                actual = st.allocated
+
             hold = int(
                 cfg.get(CONF_MIN_ON, DEFAULT_MIN_ON)
-                if self._switch_is_on(cfg.get(CONF_SWITCH_ENTITY))
+                if on_now
                 else cfg.get(CONF_MIN_OFF, DEFAULT_MIN_OFF)
             )
+
             consumers.append(
                 Consumer(
                     key=sid,
                     priority=int(cfg.get(CONF_PRIORITY, DEFAULT_PRIORITY)),
-                    control=control,
                     power_min=float(cfg.get(CONF_POWER_MIN, 0)),
                     power_max=float(cfg.get(CONF_POWER_MAX, 0)),
+                    has_number=bool(number_entity),
+                    has_switch=bool(switch_entity),
                     managed=st.managed,
-                    currently_on=self._switch_is_on(cfg.get(CONF_SWITCH_ENTITY)),
-                    allocated=st.allocated,
+                    currently_on=on_now,
+                    allocated=actual,
                     held=self._held(st, hold),
                 )
             )
@@ -186,7 +198,6 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
 
         decisions = allocate(budget, consumers)
 
-        # Carry out what was decided.
         data = RouterData(surplus=grid, budget=budget)
         for d in decisions:
             sub = subs.get(d.key)
@@ -195,16 +206,13 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             cfg = sub.data
             st = self.state_for(d.key)
 
-            if d.action == "set":
-                entity_id = cfg.get(CONF_NUMBER_ENTITY)
-                if entity_id:
-                    await self._set_number(entity_id, d.allocated)
-                    st.last_change = dt_util.utcnow()
-            elif d.action in ("on", "off"):
-                entity_id = cfg.get(CONF_SWITCH_ENTITY)
-                if entity_id:
-                    await self._set_switch(entity_id, d.action == "on")
-                    st.last_change = dt_util.utcnow()
+            if d.number_value is not None and cfg.get(CONF_NUMBER_ENTITY):
+                await self._set_number(cfg[CONF_NUMBER_ENTITY], d.number_value)
+                st.last_change = dt_util.utcnow()
+
+            if d.switch_on is not None and cfg.get(CONF_SWITCH_ENTITY):
+                await self._set_switch(cfg[CONF_SWITCH_ENTITY], d.switch_on)
+                st.last_change = dt_util.utcnow()
 
             st.allocated = d.allocated
             st.reason = d.reason
