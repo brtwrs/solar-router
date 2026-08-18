@@ -1,0 +1,96 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Solar Router",
+        "description": "Kies de sensor die je netvermogen meet. Daar bouwt de rest op voort.",
+        "data": {
+          "grid_sensor": "Sensor netvermogen",
+          "grid_export_is_negative": "Teruglevering is een negatieve waarde",
+          "reserve": "Reserve aanhouden",
+          "interval": "Herberekenen elke"
+        },
+        "data_description": {
+          "reserve": "Overschot dat je onaangeroerd laat, als buffer tegen korte pieken.",
+          "interval": "Korter reageert sneller, maar schakelt vaker."
+        }
+      }
+    },
+    "abort": { "already_configured": "Solar Router is al ingesteld." }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Solar Router",
+        "data": {
+          "grid_sensor": "Sensor netvermogen",
+          "grid_export_is_negative": "Teruglevering is een negatieve waarde",
+          "reserve": "Reserve aanhouden",
+          "interval": "Herberekenen elke"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "consumer": {
+      "title": "Verbruiker",
+      "initiate_flow": { "user": "Verbruiker toevoegen", "reconfigure": "Verbruiker bewerken" },
+      "entry_type": "Verbruiker",
+      "step": {
+        "user": {
+          "title": "Verbruiker toevoegen",
+          "description": "Iets dat overschot kan opnemen. Of een number-entiteit die je hoger en lager kunt zetten, of een schakelaar die alleen aan of uit kan.",
+          "data": {
+            "name": "Naam",
+            "control": "Hoe wordt het aangestuurd",
+            "number_entity": "Vermogensinstelling",
+            "switch_entity": "Schakelaar",
+            "power_min": "Minimaal vermogen",
+            "power_max": "Maximaal vermogen",
+            "priority": "Prioriteit",
+            "min_on": "Minimale aan-tijd",
+            "min_off": "Minimale uit-tijd"
+          },
+          "data_description": {
+            "power_min": "Daaronder is aanzetten niet zinvol. Bij aan/uit mag dit nul blijven.",
+            "power_max": "Bij een aan/uit-apparaat: wat het verbruikt als het draait.",
+            "priority": "Laagste getal wint. Wordt eerder bediend dan hogere getallen.",
+            "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
+            "min_off": "Eenmaal gestopt minstens zo lang uit laten."
+          }
+        },
+        "reconfigure": {
+          "title": "Verbruiker bewerken",
+          "data": {
+            "name": "Naam",
+            "control": "Hoe wordt het aangestuurd",
+            "number_entity": "Vermogensinstelling",
+            "switch_entity": "Schakelaar",
+            "power_min": "Minimaal vermogen",
+            "power_max": "Maximaal vermogen",
+            "priority": "Prioriteit",
+            "min_on": "Minimale aan-tijd",
+            "min_off": "Minimale uit-tijd"
+          }
+        }
+      },
+      "error": {
+        "number_required": "Kies een number-entiteit voor een regelbare verbruiker.",
+        "switch_required": "Kies een schakelaar voor een aan/uit-verbruiker.",
+        "max_below_min": "Maximaal vermogen ligt onder het minimum."
+      }
+    }
+  },
+  "selector": {
+    "control": {
+      "options": { "number": "Regelbaar vermogen", "switch": "Alleen aan/uit" }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "unused_surplus": { "name": "Ongebruikt overschot" },
+      "allocated": { "name": "Toegewezen vermogen" }
+    },
+    "switch": { "managed": { "name": "Wordt gestuurd" } }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Solar Router",
+        "description": "Pick the sensor that reports your grid power. Everything else is built on top of it.",
+        "data": {
+          "grid_sensor": "Grid power sensor",
+          "grid_export_is_negative": "Export shows as a negative value",
+          "reserve": "Keep in reserve",
+          "interval": "Recalculate every"
+        },
+        "data_description": {
+          "reserve": "Surplus to leave untouched, as a buffer against short peaks.",
+          "interval": "Shorter reacts faster but switches more often."
+        }
+      }
+    },
+    "abort": { "already_configured": "Solar Router is already set up." }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Solar Router",
+        "data": {
+          "grid_sensor": "Grid power sensor",
+          "grid_export_is_negative": "Export shows as a negative value",
+          "reserve": "Keep in reserve",
+          "interval": "Recalculate every"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "consumer": {
+      "title": "Consumer",
+      "initiate_flow": { "user": "Add consumer", "reconfigure": "Edit consumer" },
+      "entry_type": "Consumer",
+      "step": {
+        "user": {
+          "title": "Add consumer",
+          "description": "Something that can use surplus power. Either a number entity you can dial up and down, or a switch that is simply on or off.",
+          "data": {
+            "name": "Name",
+            "control": "How is it controlled",
+            "number_entity": "Power setting",
+            "switch_entity": "Switch",
+            "power_min": "Minimum power",
+            "power_max": "Maximum power",
+            "priority": "Priority",
+            "min_on": "Minimum on time",
+            "min_off": "Minimum off time"
+          },
+          "data_description": {
+            "power_min": "Below this it is not worth running. On/off devices can leave this at zero.",
+            "power_max": "For an on/off device: what it draws when running.",
+            "priority": "Lower number wins. Served before higher numbers.",
+            "min_on": "Once started, keep it running at least this long.",
+            "min_off": "Once stopped, leave it off at least this long."
+          }
+        },
+        "reconfigure": {
+          "title": "Edit consumer",
+          "data": {
+            "name": "Name",
+            "control": "How is it controlled",
+            "number_entity": "Power setting",
+            "switch_entity": "Switch",
+            "power_min": "Minimum power",
+            "power_max": "Maximum power",
+            "priority": "Priority",
+            "min_on": "Minimum on time",
+            "min_off": "Minimum off time"
+          }
+        }
+      },
+      "error": {
+        "number_required": "Pick a number entity for a modulating consumer.",
+        "switch_required": "Pick a switch for an on/off consumer.",
+        "max_below_min": "Maximum power is below the minimum."
+      }
+    }
+  },
+  "selector": {
+    "control": {
+      "options": {
+        "number": "Adjustable power",
+        "switch": "On/off only"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "unused_surplus": { "name": "Unused surplus" },
+      "allocated": { "name": "Allocated power" }
+    },
+    "switch": {
+      "managed": { "name": "Managed" }
+    }
+  }
+}
