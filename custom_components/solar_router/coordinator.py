@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .allocator import Consumer, allocate, budget_from, unused
+from .allocator import Consumer, allocate, budget_from, should_settle, unused
 from .const import (
     CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GRID_SENSOR,
@@ -24,6 +24,7 @@ from .const import (
     CONF_POWER_MIN,
     CONF_PRIORITY,
     CONF_RESERVE,
+    CONF_SETTLE,
     CONF_SWITCH_ENTITY,
     DEFAULT_EXPORT_IS_NEGATIVE,
     DEFAULT_INTERVAL,
@@ -31,6 +32,7 @@ from .const import (
     DEFAULT_MIN_ON,
     DEFAULT_PRIORITY,
     DEFAULT_RESERVE,
+    DEFAULT_SETTLE,
     DOMAIN,
     SUBENTRY_TYPE_CONSUMER,
 )
@@ -58,6 +60,7 @@ class RouterData:
     surplus: float = 0.0
     budget: float = 0.0
     unused: float = 0.0
+    settling: bool = False
     consumers: dict[str, ConsumerState] = field(default_factory=dict)
 
 
@@ -79,6 +82,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             ),
         )
         self._states: dict[str, ConsumerState] = {}
+        self._last_action: float | None = None
 
     # ------------------------------------------------------------------ reading
 
@@ -155,6 +159,20 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             # No usable reading: change nothing rather than guess.
             return RouterData(consumers=dict(self._states))
 
+        # After acting, the meter still describes the world as it was. Deciding
+        # again on that reading is how a controller overshoots, so hold until a
+        # genuinely newer measurement arrives.
+        grid_state = self.hass.states.get(self._option(CONF_GRID_SENSOR, ""))
+        grid_ts = grid_state.last_updated.timestamp() if grid_state else None
+        if should_settle(
+            grid_ts,
+            self._last_action,
+            dt_util.utcnow().timestamp(),
+            float(self._option(CONF_SETTLE, DEFAULT_SETTLE)),
+        ):
+            held = RouterData(surplus=grid, settling=True, consumers=dict(self._states))
+            return held
+
         subs = {s.subentry_id: s for s in self._subentries()}
 
         consumers: list[Consumer] = []
@@ -212,10 +230,12 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             if d.number_value is not None and cfg.get(CONF_NUMBER_ENTITY):
                 await self._set_number(cfg[CONF_NUMBER_ENTITY], d.number_value)
                 st.last_change = dt_util.utcnow()
+                self._last_action = st.last_change.timestamp()
 
             if d.switch_on is not None and cfg.get(CONF_SWITCH_ENTITY):
                 await self._set_switch(cfg[CONF_SWITCH_ENTITY], d.switch_on)
                 st.last_change = dt_util.utcnow()
+                self._last_action = st.last_change.timestamp()
 
             st.allocated = d.allocated
             st.claim = d.claim

@@ -8,11 +8,13 @@
           "grid_sensor": "Grid power sensor",
           "grid_export_is_negative": "Export shows as a negative value",
           "reserve": "Keep in reserve",
-          "interval": "Recalculate every"
+          "interval": "Recalculate every",
+          "settle": "Settle time"
         },
         "data_description": {
           "reserve": "Surplus to leave untouched, as a buffer against short peaks.",
-          "interval": "Shorter reacts faster but switches more often."
+          "interval": "Shorter reacts faster but switches more often.",
+          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up."
         }
       }
     },
@@ -28,7 +30,11 @@
           "grid_sensor": "Grid power sensor",
           "grid_export_is_negative": "Export shows as a negative value",
           "reserve": "Keep in reserve",
-          "interval": "Recalculate every"
+          "interval": "Recalculate every",
+          "settle": "Settle time"
+        },
+        "data_description": {
+          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up."
         }
       }
     }

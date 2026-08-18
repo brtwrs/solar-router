@@ -29,6 +29,7 @@ from .const import (
     CONF_POWER_MIN,
     CONF_PRIORITY,
     CONF_RESERVE,
+    CONF_SETTLE,
     CONF_SWITCH_ENTITY,
     DEFAULT_EXPORT_IS_NEGATIVE,
     DEFAULT_INTERVAL,
@@ -36,6 +37,7 @@ from .const import (
     DEFAULT_MIN_ON,
     DEFAULT_PRIORITY,
     DEFAULT_RESERVE,
+    DEFAULT_SETTLE,
     DOMAIN,
     SUBENTRY_TYPE_CONSUMER,
 )
@@ -66,6 +68,13 @@ def _hub_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=5, max=600, step=5, unit_of_measurement="s", mode="box"
+                )
+            ),
+            vol.Required(
+                CONF_SETTLE, default=d.get(CONF_SETTLE, DEFAULT_SETTLE)
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=600, step=5, unit_of_measurement="s", mode="box"
                 )
             ),
         }

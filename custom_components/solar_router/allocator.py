@@ -61,6 +61,33 @@ class Decision:
     claim: float = 0.0
 
 
+def should_settle(
+    grid_updated_at: float | None,
+    last_action_at: float | None,
+    now: float,
+    settle: float = 0.0,
+) -> bool:
+    """True when we should keep our hands still and wait.
+
+    After changing something, the grid meter still reports the world as it was
+    before. Deciding again on that stale reading is how you overshoot: you see
+    no effect, push harder, and then have to unwind it.
+
+    So we wait for a reading that is genuinely newer than our last action.
+    Timestamps are seconds; settle adds a margin for devices that take a while
+    to actually ramp up.
+
+    Never having acted means there is nothing to wait for.
+    """
+    if last_action_at is None:
+        return False
+    if now - last_action_at < settle:
+        return True
+    if grid_updated_at is None:
+        return True
+    return grid_updated_at <= last_action_at
+
+
 def budget_from(grid_export: float, already_allocated: float, reserve: float) -> float:
     """Power we may spend.
 

@@ -246,3 +246,65 @@ def test_saturated_relay_also_releases_its_power():
     assert got["car"].claim == 0
     assert got["car"].switch_on is None  # left on; it may resume by itself
     assert got["boiler"].allocated == 2300
+
+
+# --------------------------------------------------------------- priority vs fit
+
+def test_lower_priority_dial_soaks_up_what_the_relay_cannot_use():
+    """Car has priority but needs 2 kW in one go; only 1 kW is available.
+
+    The boiler is allowed to take it rather than exporting it, because the car
+    cannot use a partial amount anyway.
+    """
+    car = relay("car", priority=10, rated=2000)
+    boiler = dial("boiler", priority=20, pmax=3000)
+
+    got = by_key(allocate(1000, [car, boiler]))
+    assert got["car"].claim == 0
+    assert got["car"].reason == "waiting for surplus"
+    assert got["boiler"].allocated == 1000  # nothing exported
+
+
+def test_relay_takes_over_once_it_fits():
+    """With 2 kW the car wins on priority and the boiler is dialled back."""
+    car = relay("car", priority=10, rated=2000)
+    boiler = dial("boiler", priority=20, pmax=3000, allocated=1000, measured=1000)
+
+    # boiler drawing 1 kW, exporting 1 kW -> 2 kW to spend
+    budget = budget_from(grid_export=1000, already_allocated=1000, reserve=0)
+    got = by_key(allocate(budget, [car, boiler]))
+
+    assert got["car"].switch_on is True
+    assert got["boiler"].number_value == 0  # gives way to the higher priority
+
+
+# --------------------------------------------------------------- dead time
+
+from allocator import should_settle  # noqa: E402
+
+
+def test_no_wait_before_we_have_ever_acted():
+    assert should_settle(grid_updated_at=100, last_action_at=None, now=200) is False
+
+
+def test_wait_while_the_meter_still_predates_our_action():
+    """Meter last spoke at t=100, we acted at t=110. It has not seen us yet."""
+    assert should_settle(grid_updated_at=100, last_action_at=110, now=120) is True
+
+
+def test_go_ahead_once_the_meter_has_caught_up():
+    assert should_settle(grid_updated_at=140, last_action_at=110, now=150) is False
+
+
+def test_a_reading_exactly_at_the_action_is_not_new_enough():
+    assert should_settle(grid_updated_at=110, last_action_at=110, now=120) is True
+
+
+def test_settle_margin_holds_us_even_with_a_fresh_reading():
+    """For devices that need a moment before their draw shows up."""
+    assert should_settle(grid_updated_at=140, last_action_at=110, now=115, settle=30) is True
+    assert should_settle(grid_updated_at=140, last_action_at=110, now=145, settle=30) is False
+
+
+def test_missing_meter_timestamp_means_wait():
+    assert should_settle(grid_updated_at=None, last_action_at=110, now=200) is True

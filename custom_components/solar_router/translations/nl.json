@@ -8,11 +8,13 @@
           "grid_sensor": "Sensor netvermogen",
           "grid_export_is_negative": "Teruglevering is een negatieve waarde",
           "reserve": "Reserve aanhouden",
-          "interval": "Herberekenen elke"
+          "interval": "Herberekenen elke",
+          "settle": "Insteltijd"
         },
         "data_description": {
           "reserve": "Overschot dat je onaangeroerd laat, als buffer tegen korte pieken.",
-          "interval": "Korter reageert sneller, maar schakelt vaker."
+          "interval": "Korter reageert sneller, maar schakelt vaker.",
+          "settle": "Extra wachttijd na elke ingreep, boven op het wachten op een verse meting. Verhoog dit als een apparaat er even over doet voordat zijn verbruik zichtbaar wordt."
         }
       }
     },
@@ -28,7 +30,11 @@
           "grid_sensor": "Sensor netvermogen",
           "grid_export_is_negative": "Teruglevering is een negatieve waarde",
           "reserve": "Reserve aanhouden",
-          "interval": "Herberekenen elke"
+          "interval": "Herberekenen elke",
+          "settle": "Insteltijd"
+        },
+        "data_description": {
+          "settle": "Extra wachttijd na elke ingreep, boven op het wachten op een verse meting. Verhoog dit als een apparaat er even over doet voordat zijn verbruik zichtbaar wordt."
         }
       }
     }

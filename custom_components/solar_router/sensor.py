@@ -73,6 +73,7 @@ class SurplusSensor(CoordinatorEntity[SolarRouterCoordinator], SensorEntity):
             ATTR_SURPLUS: round(data.surplus),
             "budget": round(data.budget),
             ATTR_UNUSED: round(data.unused),
+            "settling": data.settling,
             ATTR_ALLOCATIONS: {
                 s.name: {"watt": round(s.allocated), "state": s.reason}
                 for s in data.consumers.values()
