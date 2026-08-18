@@ -214,7 +214,14 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                 )
             )
 
-        already = sum(s.claim for s in self._states.values() if s.managed)
+        # Use the measurements we just read, not last cycle's bookkeeping.
+        # Taking the older figure makes the dead time a whole cycle longer than
+        # it needs to be, which is what lets the ramp run away.
+        already = sum(
+            (c.measured if c.measured is not None else c.allocated)
+            for c in consumers
+            if c.managed
+        )
         budget = budget_from(grid, already, float(self._option(CONF_RESERVE, DEFAULT_RESERVE)))
 
         decisions = allocate(budget, consumers)
