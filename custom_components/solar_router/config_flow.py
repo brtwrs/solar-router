@@ -48,7 +48,8 @@ def _hub_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
-                CONF_GRID_SENSOR, default=d.get(CONF_GRID_SENSOR)
+                CONF_GRID_SENSOR,
+                description={"suggested_value": d.get(CONF_GRID_SENSOR)},
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor", device_class="power")
             ),
@@ -133,17 +134,20 @@ class ConsumerSubentryFlow(ConfigSubentryFlow):
             {
                 vol.Required(CONF_NAME, default=d.get(CONF_NAME, "")): str,
                 vol.Optional(
-                    CONF_NUMBER_ENTITY, default=d.get(CONF_NUMBER_ENTITY)
+                    CONF_NUMBER_ENTITY,
+                    description={"suggested_value": d.get(CONF_NUMBER_ENTITY)},
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="number")
                 ),
                 vol.Optional(
-                    CONF_SWITCH_ENTITY, default=d.get(CONF_SWITCH_ENTITY)
+                    CONF_SWITCH_ENTITY,
+                    description={"suggested_value": d.get(CONF_SWITCH_ENTITY)},
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="switch")
                 ),
                 vol.Optional(
-                    CONF_POWER_SENSOR, default=d.get(CONF_POWER_SENSOR)
+                    CONF_POWER_SENSOR,
+                    description={"suggested_value": d.get(CONF_POWER_SENSOR)},
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor", device_class="power")
                 ),
