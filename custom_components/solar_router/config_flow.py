@@ -18,6 +18,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_GRID_EXPORT_IS_NEGATIVE,
+    CONF_GAIN,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
     CONF_MIN_OFF,
@@ -32,6 +33,7 @@ from .const import (
     CONF_SETTLE,
     CONF_SWITCH_ENTITY,
     DEFAULT_EXPORT_IS_NEGATIVE,
+    DEFAULT_GAIN,
     DEFAULT_INTERVAL,
     DEFAULT_MIN_OFF,
     DEFAULT_MIN_ON,
@@ -76,6 +78,13 @@ def _hub_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0, max=600, step=5, unit_of_measurement="s", mode="box"
+                )
+            ),
+            vol.Required(
+                CONF_GAIN, default=d.get(CONF_GAIN, DEFAULT_GAIN)
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0.1, max=1.0, step=0.05, mode="slider"
                 )
             ),
         }

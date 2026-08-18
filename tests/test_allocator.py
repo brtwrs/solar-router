@@ -308,3 +308,45 @@ def test_settle_margin_holds_us_even_with_a_fresh_reading():
 
 def test_missing_meter_timestamp_means_wait():
     assert should_settle(grid_updated_at=None, last_action_at=110, now=200) is True
+
+
+# --------------------------------------------------------------- damping
+
+def test_gain_one_jumps_straight_to_target():
+    """Standaardgedrag blijft ongewijzigd."""
+    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=1.0))["boiler"]
+    assert d.allocated == 3000
+
+
+def test_gain_half_moves_halfway():
+    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))["boiler"]
+    assert d.allocated == 1500
+
+
+def test_damping_converges_instead_of_swinging():
+    """Herhaalde rondes met hetzelfde budget naderen het doel."""
+    stand = 0.0
+    reeks = []
+    for _ in range(6):
+        d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5))["boiler"]
+        stand = d.allocated
+        reeks.append(round(stand))
+    assert reeks == [1000, 1500, 1750, 1875, 1938, 1969]
+    assert all(reeks[i] < reeks[i + 1] for i in range(len(reeks) - 1))  # nooit terug
+
+
+def test_damping_also_works_downward():
+    d = by_key(allocate(1000, [dial("boiler", pmax=3000, allocated=3000)], gain=0.5))["boiler"]
+    assert d.allocated == 2000  # halverwege omlaag
+
+
+def test_damped_value_never_lands_below_the_minimum():
+    """Halverwege kan onder het minimum uitkomen; dan het minimum aanhouden."""
+    d = by_key(allocate(3000, [dial("boiler", pmin=800, pmax=3000, allocated=0)], gain=0.2))["boiler"]
+    assert d.allocated == 800  # 0 + 0.2*3000 = 600, opgetrokken naar het minimum
+
+
+def test_target_below_minimum_still_switches_off():
+    """Dempen mag uit-zetten niet in de weg zitten."""
+    d = by_key(allocate(300, [dial("boiler", pmin=800, pmax=3000, allocated=3000)], gain=0.5))["boiler"]
+    assert d.allocated == 0

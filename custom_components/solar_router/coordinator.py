@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 from .allocator import Consumer, allocate, budget_from, should_settle, unused
 from .const import (
     CONF_GRID_EXPORT_IS_NEGATIVE,
+    CONF_GAIN,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
     CONF_MIN_OFF,
@@ -27,6 +28,7 @@ from .const import (
     CONF_SETTLE,
     CONF_SWITCH_ENTITY,
     DEFAULT_EXPORT_IS_NEGATIVE,
+    DEFAULT_GAIN,
     DEFAULT_INTERVAL,
     DEFAULT_MIN_OFF,
     DEFAULT_MIN_ON,
@@ -224,7 +226,8 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         )
         budget = budget_from(grid, already, float(self._option(CONF_RESERVE, DEFAULT_RESERVE)))
 
-        decisions = allocate(budget, consumers)
+        gain = float(self._option(CONF_GAIN, DEFAULT_GAIN))
+        decisions = allocate(budget, consumers, gain)
 
         data = RouterData(surplus=grid, budget=budget)
         for d in decisions:

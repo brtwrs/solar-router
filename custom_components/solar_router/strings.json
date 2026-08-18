@@ -9,12 +9,14 @@
           "grid_export_is_negative": "Export shows as a negative value",
           "reserve": "Keep in reserve",
           "interval": "Recalculate every",
-          "settle": "Settle time"
+          "settle": "Settle time",
+          "gain": "Adjustment speed"
         },
         "data_description": {
           "reserve": "Surplus to leave untouched, as a buffer against short peaks.",
           "interval": "Shorter reacts faster but switches more often.",
-          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up."
+          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up.",
+          "gain": "How far to move towards the target each cycle. 1.0 jumps straight there, which overshoots when the meter lags. 0.5 halves the distance each time and settles smoothly."
         }
       }
     },
@@ -31,10 +33,12 @@
           "grid_export_is_negative": "Export shows as a negative value",
           "reserve": "Keep in reserve",
           "interval": "Recalculate every",
-          "settle": "Settle time"
+          "settle": "Settle time",
+          "gain": "Adjustment speed"
         },
         "data_description": {
-          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up."
+          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up.",
+          "gain": "How far to move towards the target each cycle. 1.0 jumps straight there, which overshoots when the meter lags. 0.5 halves the distance each time and settles smoothly."
         }
       }
     }

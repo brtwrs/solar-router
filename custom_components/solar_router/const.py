@@ -14,11 +14,13 @@ CONF_GRID_EXPORT_IS_NEGATIVE: Final = "grid_export_is_negative"
 CONF_RESERVE: Final = "reserve"
 CONF_INTERVAL: Final = "interval"
 CONF_SETTLE: Final = "settle"
+CONF_GAIN: Final = "gain"
 
 DEFAULT_EXPORT_IS_NEGATIVE: Final = True
 DEFAULT_RESERVE: Final = 0
 DEFAULT_INTERVAL: Final = 30
 DEFAULT_SETTLE: Final = 0
+DEFAULT_GAIN: Final = 0.5
 
 # --- consumer configuration ---
 CONF_NAME: Final = "name"
