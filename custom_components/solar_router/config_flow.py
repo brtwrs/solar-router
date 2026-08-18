@@ -25,6 +25,7 @@ from .const import (
     CONF_NAME,
     CONF_NUMBER_ENTITY,
     CONF_POWER_MAX,
+    CONF_POWER_SENSOR,
     CONF_POWER_MIN,
     CONF_PRIORITY,
     CONF_RESERVE,
@@ -131,6 +132,11 @@ class ConsumerSubentryFlow(ConfigSubentryFlow):
                     CONF_SWITCH_ENTITY, default=d.get(CONF_SWITCH_ENTITY)
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="switch")
+                ),
+                vol.Optional(
+                    CONF_POWER_SENSOR, default=d.get(CONF_POWER_SENSOR)
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor", device_class="power")
                 ),
                 vol.Required(
                     CONF_POWER_MIN, default=d.get(CONF_POWER_MIN, 0)

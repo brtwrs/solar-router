@@ -22,6 +22,7 @@ DEFAULT_INTERVAL: Final = 30
 CONF_NAME: Final = "name"
 CONF_SWITCH_ENTITY: Final = "switch_entity"
 CONF_NUMBER_ENTITY: Final = "number_entity"
+CONF_POWER_SENSOR: Final = "power_sensor"
 CONF_POWER_MIN: Final = "power_min"
 CONF_POWER_MAX: Final = "power_max"
 CONF_PRIORITY: Final = "priority"

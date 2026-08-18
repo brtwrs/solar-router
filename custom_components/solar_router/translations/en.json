@@ -53,7 +53,8 @@
             "power_max": "Maximum power",
             "priority": "Priority",
             "min_on": "Minimum on time",
-            "min_off": "Minimum off time"
+            "min_off": "Minimum off time",
+            "power_sensor": "Power sensor (optional)"
           },
           "data_description": {
             "number_entity": "A number entity you can dial up and down. Zero means off, so a switch is not required.",
@@ -62,7 +63,8 @@
             "power_max": "The ceiling. For a switch-only device: what it draws when running.",
             "priority": "Lower number wins. Served before higher numbers.",
             "min_on": "Once started, keep it running at least this long.",
-            "min_off": "Once stopped, leave it off at least this long."
+            "min_off": "Once stopped, leave it off at least this long.",
+            "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice."
           }
         },
         "reconfigure": {
@@ -75,7 +77,8 @@
             "power_max": "Maximum power",
             "priority": "Priority",
             "min_on": "Minimum on time",
-            "min_off": "Minimum off time"
+            "min_off": "Minimum off time",
+            "power_sensor": "Power sensor (optional)"
           },
           "data_description": {
             "number_entity": "A number entity you can dial up and down. Zero means off, so a switch is not required.",
@@ -84,7 +87,8 @@
             "power_max": "The ceiling. For a switch-only device: what it draws when running.",
             "priority": "Lower number wins. Served before higher numbers.",
             "min_on": "Once started, keep it running at least this long.",
-            "min_off": "Once stopped, leave it off at least this long."
+            "min_off": "Once stopped, leave it off at least this long.",
+            "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice."
           }
         }
       },

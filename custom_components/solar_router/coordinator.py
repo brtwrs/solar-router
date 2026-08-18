@@ -20,6 +20,7 @@ from .const import (
     CONF_MIN_ON,
     CONF_NUMBER_ENTITY,
     CONF_POWER_MAX,
+    CONF_POWER_SENSOR,
     CONF_POWER_MIN,
     CONF_PRIORITY,
     CONF_RESERVE,
@@ -44,6 +45,7 @@ class ConsumerState:
     subentry_id: str
     name: str
     allocated: float = 0.0
+    claim: float = 0.0
     managed: bool = True
     last_change: object = None
     reason: str = "idle"
@@ -189,11 +191,12 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                     managed=st.managed,
                     currently_on=on_now,
                     allocated=actual,
+                    measured=self._numeric(cfg.get(CONF_POWER_SENSOR)),
                     held=self._held(st, hold),
                 )
             )
 
-        already = sum(s.allocated for s in self._states.values() if s.managed)
+        already = sum(s.claim for s in self._states.values() if s.managed)
         budget = budget_from(grid, already, float(self._option(CONF_RESERVE, DEFAULT_RESERVE)))
 
         decisions = allocate(budget, consumers)
@@ -215,6 +218,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                 st.last_change = dt_util.utcnow()
 
             st.allocated = d.allocated
+            st.claim = d.claim
             st.reason = d.reason
             data.consumers[d.key] = st
 

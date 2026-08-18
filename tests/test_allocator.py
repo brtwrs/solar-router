@@ -191,3 +191,58 @@ def test_mixed_fleet_realistic():
     assert got["boiler"].allocated == 3000
     assert got["car"].allocated == 0  # 1000 left, needs 2300
     assert got["miner"].allocated == 1000
+
+
+# --------------------------------------------------------------- measured draw
+
+def test_saturated_boiler_hands_its_power_on():
+    """Bart's case: boiler allowed 3 kW, but its own thermostat cut out.
+
+    Without measuring we would count 3 kW as spent, see the export rise, and
+    hand out that same 3 kW a second time.
+    """
+    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=0)
+    car = relay("car", priority=20, rated=2300)
+
+    got = by_key(allocate(3000, [boiler, car]))
+    assert got["boiler"].claim == 0  # costs us nothing right now
+    assert got["boiler"].number_value is None  # dial stays up, ready to resume
+    assert got["boiler"].reason == "allowed, not drawing"
+    assert got["car"].switch_on is True  # the power went somewhere useful
+
+
+def test_drawing_boiler_keeps_its_claim():
+    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=3000)
+    car = relay("car", priority=20, rated=2300)
+
+    got = by_key(allocate(3000, [boiler, car]))
+    assert got["boiler"].claim == 3000
+    assert got["car"].switch_on is None  # nothing left over
+
+
+def test_partial_draw_only_claims_what_it_uses():
+    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=1200)
+    got = by_key(allocate(3000, [boiler]))
+    assert got["boiler"].claim == 1200
+    assert unused(3000, [got["boiler"]]) == 1800
+
+
+def test_claim_never_exceeds_what_we_allowed():
+    """A device drawing more than we gave it is not our budget to spend."""
+    boiler = dial("boiler", priority=10, pmax=1000, allocated=1000, measured=2500)
+    assert by_key(allocate(1000, [boiler]))["boiler"].claim == 1000
+
+
+def test_without_a_sensor_we_assume_it_uses_its_allocation():
+    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000)
+    assert by_key(allocate(3000, [boiler]))["boiler"].claim == 3000
+
+
+def test_saturated_relay_also_releases_its_power():
+    """A switched load that is on but idle, e.g. a charger that finished."""
+    car = relay("car", priority=10, rated=2300, currently_on=True, measured=0)
+    boiler = dial("boiler", priority=20, pmin=200, pmax=3000)
+    got = by_key(allocate(2300, [car, boiler]))
+    assert got["car"].claim == 0
+    assert got["car"].switch_on is None  # left on; it may resume by itself
+    assert got["boiler"].allocated == 2300
