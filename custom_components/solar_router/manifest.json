@@ -1,12 +1,12 @@
 {
   "domain": "solar_router",
   "name": "Solar Router",
-  "codeowners": ["@bartwijers"],
+  "codeowners": ["@brtwrs"],
   "config_flow": true,
-  "documentation": "https://github.com/bartwijers/solar-router",
+  "documentation": "https://github.com/brtwrs/solar-router",
   "integration_type": "hub",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/bartwijers/solar-router/issues",
+  "issue_tracker": "https://github.com/brtwrs/solar-router/issues",
   "requirements": [],
   "version": "0.1.0"
 }
