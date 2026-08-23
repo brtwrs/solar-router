@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "solar_router"
+MANUFACTURER: Final = "Solar Router"
 
 SUBENTRY_TYPE_CONSUMER: Final = "consumer"
 
@@ -36,6 +37,11 @@ CONF_MIN_OFF: Final = "min_off"
 DEFAULT_PRIORITY: Final = 50
 DEFAULT_MIN_ON: Final = 300
 DEFAULT_MIN_OFF: Final = 300
+
+# --- reasons reported alongside an allocation ---
+# The allocator has its own set; this one is decided here because the allocator
+# never sees an unmanaged consumer.
+REASON_NOT_MANAGED: Final = "not managed"
 
 # --- attributes exposed on the hub sensor ---
 ATTR_ALLOCATIONS: Final = "allocations"

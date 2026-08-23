@@ -1,0 +1,20 @@
+{
+  "entity": {
+    "sensor": {
+      "unused_surplus": {
+        "default": "mdi:solar-power-variant"
+      },
+      "allocated": {
+        "default": "mdi:transmission-tower-export"
+      }
+    },
+    "switch": {
+      "managed": {
+        "default": "mdi:robot",
+        "state": {
+          "off": "mdi:robot-off"
+        }
+      }
+    }
+  }
+}

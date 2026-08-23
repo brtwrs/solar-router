@@ -67,7 +67,7 @@ def should_settle(
     now: float,
     settle: float = 0.0,
 ) -> bool:
-    """True when we should keep our hands still and wait.
+    """Report whether we should keep our hands still and wait.
 
     After changing something, the grid meter still reports the world as it was
     before. Deciding again on that stale reading is how you overshoot: you see
@@ -99,7 +99,7 @@ def budget_from(grid_export: float, already_allocated: float, reserve: float) ->
 
 
 def _claim_for(c: Consumer, allocated: float) -> float:
-    """What this consumer really costs the budget.
+    """Work out what this consumer really costs the budget.
 
     With a power sensor we use the measured draw, capped at what we allowed —
     anything above that is not ours to account for. Without one we can only
@@ -134,7 +134,9 @@ def _dode_zone(c: Consumer) -> float:
     return max(10.0, c.power_max * 0.01)
 
 
-def _decide_one(c: Consumer, remaining: float, gain: float = 1.0) -> Decision:
+def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
+    c: Consumer, remaining: float, gain: float = 1.0
+) -> Decision:
     """Work out what this consumer gets from what is left."""
     if not c.managed:
         return Decision(c.key, 0.0, "not managed", claim=0.0)

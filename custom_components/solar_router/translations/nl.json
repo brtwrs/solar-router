@@ -22,6 +22,9 @@
     },
     "abort": {
       "already_configured": "Solar Router is al ingesteld."
+    },
+    "error": {
+      "cannot_read": "Die sensor geeft op dit moment geen getal. Kies een andere, of wacht tot hij een waarde heeft."
     }
   },
   "options": {

@@ -6,9 +6,11 @@ Run with:  python -m pytest tests/ -q
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components" / "solar_router"))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "custom_components" / "solar_router")
+)
 
-from allocator import Consumer, allocate, budget_from, unused  # noqa: E402
+from allocator import Consumer, allocate, budget_from, unused
 
 
 def by_key(decisions):
@@ -32,6 +34,7 @@ def both(key, priority=10, pmin=0, pmax=3000, **kw):
 
 # --------------------------------------------------------------- budget
 
+
 def test_budget_adds_back_own_draw():
     """The whole point: our own consumption must not look like a shortage."""
     assert budget_from(grid_export=200, already_allocated=1000, reserve=0) == 1200
@@ -46,6 +49,7 @@ def test_budget_can_go_negative_when_importing():
 
 
 # --------------------------------------------------------------- dial only
+
 
 def test_dial_takes_what_fits():
     d = by_key(allocate(1500, [dial("boiler", pmin=200)]))["boiler"]
@@ -79,12 +83,15 @@ def test_dial_not_written_when_unchanged():
 
 
 def test_priority_order_is_respected():
-    got = by_key(allocate(4000, [dial("miner", priority=20), dial("boiler", priority=10)]))
+    got = by_key(
+        allocate(4000, [dial("miner", priority=20), dial("boiler", priority=10)])
+    )
     assert got["boiler"].allocated == 3000
     assert got["miner"].allocated == 1000
 
 
 # --------------------------------------------------------------- switch only
+
 
 def test_relay_turns_on_when_it_fits():
     d = by_key(allocate(2500, [relay("car")]))["car"]
@@ -123,6 +130,7 @@ def test_minimum_off_time_prevents_restart():
 
 # --------------------------------------------------------------- switch + dial
 
+
 def test_both_switches_on_and_dials_up():
     d = by_key(allocate(2000, [both("charger", pmin=1400, pmax=7400)]))["charger"]
     assert d.switch_on is True
@@ -131,13 +139,17 @@ def test_both_switches_on_and_dials_up():
 
 
 def test_both_switches_off_below_minimum():
-    d = by_key(allocate(600, [both("charger", pmin=1400, pmax=7400, currently_on=True)]))["charger"]
+    d = by_key(
+        allocate(600, [both("charger", pmin=1400, pmax=7400, currently_on=True)])
+    )["charger"]
     assert d.switch_on is False
     assert d.allocated == 0
 
 
 def test_both_leaves_switch_alone_when_already_correct():
-    d = by_key(allocate(2000, [both("charger", pmin=1400, currently_on=True)]))["charger"]
+    d = by_key(allocate(2000, [both("charger", pmin=1400, currently_on=True)]))[
+        "charger"
+    ]
     assert d.switch_on is None  # already on
     assert d.number_value == 2000
 
@@ -161,8 +173,14 @@ def test_held_charger_does_not_starve_the_next_one():
 
 # --------------------------------------------------------------- misc
 
+
 def test_unmanaged_is_skipped_and_keeps_its_budget():
-    got = by_key(allocate(2000, [dial("miner", priority=10, managed=False), dial("boiler", priority=20)]))
+    got = by_key(
+        allocate(
+            2000,
+            [dial("miner", priority=10, managed=False), dial("boiler", priority=20)],
+        )
+    )
     assert got["miner"].allocated == 0
     assert got["boiler"].allocated == 2000
 
@@ -195,13 +213,16 @@ def test_mixed_fleet_realistic():
 
 # --------------------------------------------------------------- measured draw
 
+
 def test_saturated_boiler_hands_its_power_on():
     """Bart's case: boiler allowed 3 kW, but its own thermostat cut out.
 
     Without measuring we would count 3 kW as spent, see the export rise, and
     hand out that same 3 kW a second time.
     """
-    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=0)
+    boiler = dial(
+        "boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=0
+    )
     car = relay("car", priority=20, rated=2300)
 
     got = by_key(allocate(3000, [boiler, car]))
@@ -212,7 +233,9 @@ def test_saturated_boiler_hands_its_power_on():
 
 
 def test_drawing_boiler_keeps_its_claim():
-    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=3000)
+    boiler = dial(
+        "boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=3000
+    )
     car = relay("car", priority=20, rated=2300)
 
     got = by_key(allocate(3000, [boiler, car]))
@@ -221,7 +244,9 @@ def test_drawing_boiler_keeps_its_claim():
 
 
 def test_partial_draw_only_claims_what_it_uses():
-    boiler = dial("boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=1200)
+    boiler = dial(
+        "boiler", priority=10, pmin=200, pmax=3000, allocated=3000, measured=1200
+    )
     got = by_key(allocate(3000, [boiler]))
     assert got["boiler"].claim == 1200
     assert unused(3000, [got["boiler"]]) == 1800
@@ -249,6 +274,7 @@ def test_saturated_relay_also_releases_its_power():
 
 
 # --------------------------------------------------------------- priority vs fit
+
 
 def test_lower_priority_dial_soaks_up_what_the_relay_cannot_use():
     """Car has priority but needs 2 kW in one go; only 1 kW is available.
@@ -280,7 +306,7 @@ def test_relay_takes_over_once_it_fits():
 
 # --------------------------------------------------------------- dead time
 
-from allocator import should_settle  # noqa: E402
+from allocator import should_settle
 
 
 def test_no_wait_before_we_have_ever_acted():
@@ -302,8 +328,14 @@ def test_a_reading_exactly_at_the_action_is_not_new_enough():
 
 def test_settle_margin_holds_us_even_with_a_fresh_reading():
     """For devices that need a moment before their draw shows up."""
-    assert should_settle(grid_updated_at=140, last_action_at=110, now=115, settle=30) is True
-    assert should_settle(grid_updated_at=140, last_action_at=110, now=145, settle=30) is False
+    assert (
+        should_settle(grid_updated_at=140, last_action_at=110, now=115, settle=30)
+        is True
+    )
+    assert (
+        should_settle(grid_updated_at=140, last_action_at=110, now=145, settle=30)
+        is False
+    )
 
 
 def test_missing_meter_timestamp_means_wait():
@@ -312,14 +344,19 @@ def test_missing_meter_timestamp_means_wait():
 
 # --------------------------------------------------------------- damping
 
+
 def test_gain_one_jumps_straight_to_target():
     """Standaardgedrag blijft ongewijzigd."""
-    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=1.0))["boiler"]
+    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=1.0))[
+        "boiler"
+    ]
     assert d.allocated == 3000
 
 
 def test_gain_half_moves_halfway():
-    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))["boiler"]
+    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))[
+        "boiler"
+    ]
     assert d.allocated == 1500
 
 
@@ -328,7 +365,9 @@ def test_damping_converges_instead_of_swinging():
     stand = 0.0
     reeks = []
     for _ in range(6):
-        d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5))["boiler"]
+        d = by_key(
+            allocate(2000, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5)
+        )["boiler"]
         stand = d.allocated
         reeks.append(round(stand))
     assert reeks == [1000, 1500, 1750, 1875, 1938, 1969]
@@ -336,29 +375,38 @@ def test_damping_converges_instead_of_swinging():
 
 
 def test_damping_also_works_downward():
-    d = by_key(allocate(1000, [dial("boiler", pmax=3000, allocated=3000)], gain=0.5))["boiler"]
+    d = by_key(allocate(1000, [dial("boiler", pmax=3000, allocated=3000)], gain=0.5))[
+        "boiler"
+    ]
     assert d.allocated == 2000  # halverwege omlaag
 
 
 def test_damped_value_never_lands_below_the_minimum():
     """Halverwege kan onder het minimum uitkomen; dan het minimum aanhouden."""
-    d = by_key(allocate(3000, [dial("boiler", pmin=800, pmax=3000, allocated=0)], gain=0.2))["boiler"]
+    d = by_key(
+        allocate(3000, [dial("boiler", pmin=800, pmax=3000, allocated=0)], gain=0.2)
+    )["boiler"]
     assert d.allocated == 800  # 0 + 0.2*3000 = 600, opgetrokken naar het minimum
 
 
 def test_target_below_minimum_still_switches_off():
     """Dempen mag uit-zetten niet in de weg zitten."""
-    d = by_key(allocate(300, [dial("boiler", pmin=800, pmax=3000, allocated=3000)], gain=0.5))["boiler"]
+    d = by_key(
+        allocate(300, [dial("boiler", pmin=800, pmax=3000, allocated=3000)], gain=0.5)
+    )["boiler"]
     assert d.allocated == 0
 
 
 # --------------------------------------------------------------- dode zone
 
+
 def test_damping_towards_zero_actually_reaches_zero():
     """Zonder dode zone: 176 -> 88 -> 44 -> 22 -> ... eeuwig."""
     stand = 176.0
     for _ in range(6):
-        d = by_key(allocate(0, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5))["boiler"]
+        d = by_key(allocate(0, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5))[
+            "boiler"
+        ]
         stand = d.allocated
         if stand == 0:
             break
@@ -367,7 +415,9 @@ def test_damping_towards_zero_actually_reaches_zero():
 
 def test_dead_zone_scales_with_the_maximum():
     """1% van het maximum, dus 30 W bij een boiler van 3 kW."""
-    d = by_key(allocate(50, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))["boiler"]
+    d = by_key(allocate(50, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))[
+        "boiler"
+    ]
     assert d.allocated == 0  # 0 + 0.5*50 = 25, onder de 30
 
 
@@ -378,5 +428,7 @@ def test_small_device_keeps_a_sane_floor():
 
 
 def test_normal_values_are_untouched_by_the_dead_zone():
-    d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))["boiler"]
+    d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))[
+        "boiler"
+    ]
     assert d.allocated == 1000

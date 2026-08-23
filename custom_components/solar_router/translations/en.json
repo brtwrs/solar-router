@@ -22,6 +22,9 @@
     },
     "abort": {
       "already_configured": "Solar Router is already set up."
+    },
+    "error": {
+      "cannot_read": "That sensor is not reporting a number right now. Pick another one, or wait until it has a value."
     }
   },
   "options": {

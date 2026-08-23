@@ -1,0 +1,40 @@
+[project]
+name = "solar-router"
+version = "0.1.0"
+description = "Spend your own solar power instead of exporting it."
+requires-python = ">=3.13"
+
+[tool.ruff]
+# Zelfde als Home Assistant core.
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "A001", "ASYNC", "B", "C4", "D", "E", "F", "FLY", "FURB", "G", "I",
+  "ICN001", "INP", "ISC", "LOG", "N804", "N805", "N815", "PERF", "PGH",
+  "PIE", "PL", "PT", "RET", "RSE", "RUF", "S102", "S103", "S108", "SIM",
+  "SLF", "SLOT", "T100", "T20", "TID", "TRY", "UP", "W",
+]
+ignore = [
+  # Botst met de formatter, precies zoals in HA core.
+  "COM812", "ISC001",
+  # HA staat lange docstrings zonder trailing-period-regels toe.
+  "D203", "D213",
+  # Aantallen argumenten in config-flow-schema's zijn nu eenmaal groot.
+  "PLR0912", "PLR0913", "PLR0915",
+  # Magic values zijn hier leesbaarder dan een constante per getal.
+  "PLR2004",
+  # TRY003: lange melding in de exception is hier juist het nuttige deel.
+  "TRY003",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# De tests importeren via sys.path en gebruiken losse asserts.
+"tests/*" = ["D", "E402", "E501", "INP001", "S101", "PLR2004"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

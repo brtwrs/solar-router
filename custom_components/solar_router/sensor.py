@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
+from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SolarRouterConfigEntry
-from .const import ATTR_ALLOCATIONS, ATTR_SURPLUS, ATTR_UNUSED, DOMAIN, SUBENTRY_TYPE_CONSUMER
+from .const import ATTR_ALLOCATIONS, ATTR_SURPLUS, ATTR_UNUSED, SUBENTRY_TYPE_CONSUMER
 from .coordinator import SolarRouterCoordinator
+from .entity import SolarRouterConsumerEntity, SolarRouterEntity
+
+# Everything comes from one coordinator poll; there is nothing to serialise.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -37,10 +42,9 @@ async def async_setup_entry(
         )
 
 
-class SurplusSensor(CoordinatorEntity[SolarRouterCoordinator], SensorEntity):
+class SurplusSensor(SolarRouterEntity, SensorEntity):
     """How much surplus is left after everyone has been served."""
 
-    _attr_has_entity_name = True
     _attr_translation_key = "unused_surplus"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -49,25 +53,21 @@ class SurplusSensor(CoordinatorEntity[SolarRouterCoordinator], SensorEntity):
     def __init__(
         self, coordinator: SolarRouterCoordinator, entry: SolarRouterConfigEntry
     ) -> None:
-        super().__init__(coordinator)
+        """Set up the hub sensor."""
+        super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_unused"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Solar Router",
-            manufacturer="Solar Router",
-            entry_type="service",
-        )
 
     @property
     def native_value(self) -> float | None:
-        if self.coordinator.data is None:
+        """Surplus that nobody claimed, in watts."""
+        if (data := self.coordinator.data) is None:
             return None
-        return round(self.coordinator.data.unused)
+        return round(data.unused)
 
     @property
-    def extra_state_attributes(self) -> dict:
-        data = self.coordinator.data
-        if data is None:
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The whole picture of one cycle, for debugging and templates."""
+        if (data := self.coordinator.data) is None:
             return {}
         return {
             ATTR_SURPLUS: round(data.surplus),
@@ -75,44 +75,44 @@ class SurplusSensor(CoordinatorEntity[SolarRouterCoordinator], SensorEntity):
             ATTR_UNUSED: round(data.unused),
             "settling": data.settling,
             ATTR_ALLOCATIONS: {
-                s.name: {"watt": round(s.allocated), "state": s.reason}
-                for s in data.consumers.values()
+                state.name: {"watt": round(state.allocated), "state": state.reason}
+                for state in data.consumers.values()
             },
         }
 
 
-class ConsumerPowerSensor(CoordinatorEntity[SolarRouterCoordinator], SensorEntity):
+class ConsumerPowerSensor(SolarRouterConsumerEntity, SensorEntity):
     """Power currently routed to one consumer."""
 
-    _attr_has_entity_name = True
     _attr_translation_key = "allocated"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.WATT
 
-    def __init__(self, coordinator, entry, subentry) -> None:
-        super().__init__(coordinator)
-        self._subentry_id = subentry.subentry_id
+    def __init__(
+        self,
+        coordinator: SolarRouterCoordinator,
+        entry: SolarRouterConfigEntry,
+        subentry: ConfigSubentry,
+    ) -> None:
+        """Set up the per-consumer sensor."""
+        super().__init__(coordinator, entry, subentry)
         self._attr_unique_id = f"{subentry.subentry_id}_allocated"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, subentry.subentry_id)},
-            name=subentry.title,
-            manufacturer="Solar Router",
-            via_device=(DOMAIN, entry.entry_id),
-        )
 
     @property
     def native_value(self) -> float | None:
-        data = self.coordinator.data
-        if data is None:
+        """Watts routed to this consumer."""
+        if (data := self.coordinator.data) is None:
             return None
-        state = data.consumers.get(self._subentry_id)
-        return round(state.allocated) if state else 0
+        if (state := data.consumers.get(self._subentry_id)) is None:
+            return 0
+        return round(state.allocated)
 
     @property
-    def extra_state_attributes(self) -> dict:
-        data = self.coordinator.data
-        if data is None:
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Why the allocator landed on this figure."""
+        if (data := self.coordinator.data) is None:
             return {}
-        state = data.consumers.get(self._subentry_id)
-        return {"state": state.reason} if state else {}
+        if (state := data.consumers.get(self._subentry_id)) is None:
+            return {}
+        return {"state": state.reason}

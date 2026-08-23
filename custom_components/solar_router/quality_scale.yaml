@@ -1,0 +1,102 @@
+# Home Assistant integration quality scale.
+#
+# Deze schaal geldt formeel alleen voor integraties in HA core; een custom
+# integratie krijgt geen officiele beoordeling. Het is hier een checklist, en
+# dit bestand legt vast waar we staan en waarom iets niet van toepassing is.
+
+rules:
+  # --------------------------------------------------------------- bronze
+  action-setup:
+    status: exempt
+    comment: De integratie registreert geen service actions.
+  appropriate-polling: done
+  brands:
+    status: todo
+    comment: |
+      Vereist een PR op home-assistant/brands met een logo. Kan pas als de repo
+      publiek is, en is alleen nodig voor opname in de standaardlijst.
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage:
+    status: todo
+    comment: De config flow heeft nog geen tests; zie test-coverage.
+  dependency-transparency:
+    status: exempt
+    comment: Geen externe afhankelijkheden; requirements is leeg.
+  docs-actions:
+    status: exempt
+    comment: Geen service actions om te documenteren.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-event-setup:
+    status: exempt
+    comment: Entiteiten abonneren zich alleen via CoordinatorEntity.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # --------------------------------------------------------------- silver
+  action-exceptions:
+    status: exempt
+    comment: Geen service actions.
+  config-entry-unloading: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: Er is niets om mee te authenticeren; alles is lokaal.
+  test-coverage:
+    status: todo
+    comment: |
+      allocator.py is volledig getest (48 tests). De HA-laag nog niet; dat
+      vraagt pytest-homeassistant-custom-component en Python 3.13.
+
+  # --------------------------------------------------------------- gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: Er valt niets te ontdekken; de gebruiker wijst zelf entiteiten aan.
+  discovery-update-info:
+    status: exempt
+    comment: Zie discovery.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices: done
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: Beide entiteiten per verbruiker zijn de kern van de integratie.
+  entity-translations: done
+  exception-translations:
+    status: exempt
+    comment: Er worden geen HomeAssistantError-varianten naar de gebruiker gegooid.
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues:
+    status: exempt
+    comment: Geen toestand die de gebruiker actief moet repareren.
+  stale-devices: done
+
+  # ------------------------------------------------------------- platinum
+  async-dependency:
+    status: exempt
+    comment: Geen externe library; alles loopt via de HA event loop.
+  inject-websession:
+    status: exempt
+    comment: Er wordt geen HTTP gedaan.
+  strict-typing: done

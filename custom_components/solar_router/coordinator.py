@@ -4,25 +4,32 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
+from homeassistant.const import (
+    ATTR_UNIT_OF_MEASUREMENT,
+    STATE_ON,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .allocator import Consumer, allocate, budget_from, should_settle, unused
 from .const import (
-    CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GAIN,
+    CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
     CONF_MIN_OFF,
     CONF_MIN_ON,
     CONF_NUMBER_ENTITY,
     CONF_POWER_MAX,
-    CONF_POWER_SENSOR,
     CONF_POWER_MIN,
+    CONF_POWER_SENSOR,
     CONF_PRIORITY,
     CONF_RESERVE,
     CONF_SETTLE,
@@ -51,7 +58,7 @@ class ConsumerState:
     allocated: float = 0.0
     claim: float = 0.0
     managed: bool = True
-    last_change: object = None
+    last_change: datetime | None = None
     reason: str = "idle"
 
 
@@ -70,11 +77,13 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
     """Reads the grid sensor, asks the allocator, applies the outcome."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Set the polling interval from the entry and start empty."""
         self.entry = entry
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
+            config_entry=entry,
             update_interval=timedelta(
                 seconds=int(
                     entry.options.get(
@@ -85,10 +94,11 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         )
         self._states: dict[str, ConsumerState] = {}
         self._last_action: float | None = None
+        self._grid_missing_logged = False
 
     # ------------------------------------------------------------------ reading
 
-    def _option(self, key: str, default):
+    def _option(self, key: str, default: Any) -> Any:
         """Options win over data, so reconfiguring takes effect."""
         return self.entry.options.get(key, self.entry.data.get(key, default))
 
@@ -97,13 +107,13 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         if not entity_id:
             return None
         state = self.hass.states.get(entity_id)
-        if state is None or state.state in ("unknown", "unavailable"):
+        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
             return None
         try:
             value = float(state.state)
         except (TypeError, ValueError):
             return None
-        unit = (state.attributes.get("unit_of_measurement") or "").lower()
+        unit = (state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) or "").lower()
         if unit in ("kw", "kilowatt"):
             value *= 1000
         return value
@@ -118,6 +128,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         return value
 
     def _subentries(self) -> list[ConfigSubentry]:
+        """Return the consumer subentries, ignoring any other type."""
         return [
             s
             for s in self.entry.subentries.values()
@@ -125,6 +136,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         ]
 
     def state_for(self, subentry_id: str, name: str = "") -> ConsumerState:
+        """Bookkeeping for one consumer, created on first use."""
         if subentry_id not in self._states:
             self._states[subentry_id] = ConsumerState(subentry_id, name)
         return self._states[subentry_id]
@@ -136,35 +148,76 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         return (dt_util.utcnow() - state.last_change).total_seconds() < seconds
 
     def _switch_is_on(self, entity_id: str | None) -> bool:
+        """Whether a consumer's switch is currently on."""
         if not entity_id:
             return False
-        st = self.hass.states.get(entity_id)
-        return st is not None and st.state == "on"
+        state = self.hass.states.get(entity_id)
+        return state is not None and state.state == STATE_ON
+
+    def input_snapshot(self) -> dict[str, Any]:
+        """Collect what every source entity reads right now, for diagnostics."""
+        grid_sensor = self._option(CONF_GRID_SENSOR, None)
+        snapshot: dict[str, Any] = {
+            "grid_sensor": grid_sensor,
+            "grid_raw": self._numeric(grid_sensor),
+            "grid_normalised": self._read_grid(),
+            "consumers": {},
+        }
+        for subentry in self._subentries():
+            cfg = subentry.data
+            snapshot["consumers"][subentry.title] = {
+                CONF_NUMBER_ENTITY: self._numeric(cfg.get(CONF_NUMBER_ENTITY)),
+                CONF_POWER_SENSOR: self._numeric(cfg.get(CONF_POWER_SENSOR)),
+                CONF_SWITCH_ENTITY: self._switch_is_on(cfg.get(CONF_SWITCH_ENTITY)),
+            }
+        return snapshot
 
     # ------------------------------------------------------------------ applying
 
     async def _set_number(self, entity_id: str, value: float) -> None:
+        """Dial a modulating consumer to a new setpoint."""
         await self.hass.services.async_call(
-            "number", "set_value", {"entity_id": entity_id, "value": round(value)}, blocking=False
+            "number",
+            "set_value",
+            {"entity_id": entity_id, "value": round(value)},
+            blocking=False,
         )
 
     async def _set_switch(self, entity_id: str, on: bool) -> None:
+        """Flip an on/off consumer."""
         await self.hass.services.async_call(
-            "switch", "turn_on" if on else "turn_off", {"entity_id": entity_id}, blocking=False
+            "switch",
+            "turn_on" if on else "turn_off",
+            {"entity_id": entity_id},
+            blocking=False,
         )
 
     # ------------------------------------------------------------------ one cycle
 
     async def _async_update_data(self) -> RouterData:
+        """Run one cycle: read, decide, apply."""
+        grid_sensor = self._option(CONF_GRID_SENSOR, None)
         grid = self._read_grid()
         if grid is None:
-            # No usable reading: change nothing rather than guess.
-            return RouterData(consumers=dict(self._states))
+            # No usable reading. Change nothing rather than guess, and let the
+            # entities go unavailable so it is visible that we are not steering.
+            if not self._grid_missing_logged:
+                self._grid_missing_logged = True
+                _LOGGER.warning(
+                    "Grid sensor %s is unavailable or not numeric; not routing until"
+                    " it returns",
+                    grid_sensor,
+                )
+            raise UpdateFailed(f"No usable reading from {grid_sensor}")
+
+        if self._grid_missing_logged:
+            self._grid_missing_logged = False
+            _LOGGER.info("Grid sensor %s is readable again", grid_sensor)
 
         # After acting, the meter still describes the world as it was. Deciding
         # again on that reading is how a controller overshoots, so hold until a
         # genuinely newer measurement arrives.
-        grid_state = self.hass.states.get(self._option(CONF_GRID_SENSOR, ""))
+        grid_state = self.hass.states.get(grid_sensor)
         grid_ts = grid_state.last_updated.timestamp() if grid_state else None
         if should_settle(
             grid_ts,
@@ -172,8 +225,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             dt_util.utcnow().timestamp(),
             float(self._option(CONF_SETTLE, DEFAULT_SETTLE)),
         ):
-            held = RouterData(surplus=grid, settling=True, consumers=dict(self._states))
-            return held
+            return RouterData(surplus=grid, settling=True, consumers=dict(self._states))
 
         subs = {s.subentry_id: s for s in self._subentries()}
 
@@ -224,7 +276,9 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             for c in consumers
             if c.managed
         )
-        budget = budget_from(grid, already, float(self._option(CONF_RESERVE, DEFAULT_RESERVE)))
+        budget = budget_from(
+            grid, already, float(self._option(CONF_RESERVE, DEFAULT_RESERVE))
+        )
 
         gain = float(self._option(CONF_GAIN, DEFAULT_GAIN))
         decisions = allocate(budget, consumers, gain)

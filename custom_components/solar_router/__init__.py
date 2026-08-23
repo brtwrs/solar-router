@@ -27,7 +27,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: SolarRouterConfigEntry) 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: SolarRouterConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: SolarRouterConfigEntry
+) -> bool:
     """Tear down."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

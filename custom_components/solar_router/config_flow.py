@@ -13,12 +13,13 @@ from homeassistant.config_entries import (
     OptionsFlow,
     SubentryFlowResult,
 )
-from homeassistant.core import callback
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GAIN,
+    CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
     CONF_MIN_OFF,
@@ -26,8 +27,8 @@ from .const import (
     CONF_NAME,
     CONF_NUMBER_ENTITY,
     CONF_POWER_MAX,
-    CONF_POWER_SENSOR,
     CONF_POWER_MIN,
+    CONF_POWER_SENSOR,
     CONF_PRIORITY,
     CONF_RESERVE,
     CONF_SETTLE,
@@ -43,6 +44,18 @@ from .const import (
     DOMAIN,
     SUBENTRY_TYPE_CONSUMER,
 )
+
+
+def _readable_power(hass: HomeAssistant, entity_id: str) -> bool:
+    """Whether an entity currently gives a number we can work with."""
+    state = hass.states.get(entity_id)
+    if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+        return False
+    try:
+        float(state.state)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def _hub_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
@@ -100,24 +113,38 @@ class SolarRouterConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Ask for the grid sensor."""
+        errors: dict[str, str] = {}
+
         if user_input is not None:
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
-            return self.async_create_entry(title="Solar Router", data=user_input)
 
-        return self.async_show_form(step_id="user", data_schema=_hub_schema())
+            # Everything is built on this one reading, so refuse to finish the
+            # flow while it cannot be read. Failing here is far easier to
+            # understand than an integration that silently never routes.
+            if not _readable_power(self.hass, user_input[CONF_GRID_SENSOR]):
+                errors[CONF_GRID_SENSOR] = "cannot_read"
+            else:
+                return self.async_create_entry(title="Solar Router", data=user_input)
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_hub_schema(user_input),
+            errors=errors,
+        )
 
     @classmethod
     @callback
     def async_get_supported_subentry_types(
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
-        """This is what puts the + button in the UI."""
+        """Return the subentry flow that puts the + button in the UI."""
         return {SUBENTRY_TYPE_CONSUMER: ConsumerSubentryFlow}
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the flow for changing the hub settings."""
         return SolarRouterOptionsFlow()
 
 
@@ -127,6 +154,7 @@ class SolarRouterOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Show the hub settings and store any changes."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
