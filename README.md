@@ -1,5 +1,9 @@
 # Solar Router
 
+[![hacs][hacs-badge]][hacs-url]
+[![release][release-badge]][release-url]
+[![license][license-badge]](LICENSE)
+
 Spend your own solar power instead of exporting it.
 
 You tell it which sensor reports your grid power, then add consumers — a boiler,
@@ -12,10 +16,27 @@ This is deliberately reactive, not predictive. It does not forecast the weather
 or optimise against energy prices — it looks at what is happening right now and
 divides it up. If you need forecasting, look at EMHASS instead.
 
+## Requirements
+
+Home Assistant **2025.3.0** or newer. Consumers are config subentries, and those
+did not exist before that release.
+
 ## Install
 
+### HACS
+
+This is not in the default HACS store. Add it as a custom repository:
+
+1. HACS → three dots, top right → **Custom repositories**
+2. Repository `brtwrs/solar-router`, type **Integration**
+3. Find **Solar Router** in HACS, install it, restart Home Assistant
+
+### By hand
+
 Copy `custom_components/solar_router` into your Home Assistant `config`
-directory and restart. Then **Settings → Devices & Services → Add integration →
+directory and restart.
+
+Either way, finish with **Settings → Devices & Services → Add integration →
 Solar Router**.
 
 ## Setting it up
@@ -62,5 +83,16 @@ python -m pytest tests/ -q
 
 ## Status
 
-Version 0.1.0. Written against Home Assistant 2026.8. Uses config subentries,
-which need a reasonably recent Home Assistant.
+Version 0.1.0, a first release. Written and run against Home Assistant 2026.8;
+the 2025.3.0 floor is where the APIs it uses first appeared, not a version it has
+been tested on.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+[hacs-badge]: https://img.shields.io/badge/HACS-custom-41BDF5.svg
+[hacs-url]: https://hacs.xyz/
+[release-badge]: https://img.shields.io/github/v/release/brtwrs/solar-router
+[release-url]: https://github.com/brtwrs/solar-router/releases
+[license-badge]: https://img.shields.io/github/license/brtwrs/solar-router

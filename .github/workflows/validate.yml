@@ -1,0 +1,30 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Beide validators lopen mee met upstream, dus wekelijks opnieuw draaien
+    # vangt een breuk op zonder dat er hier iets verandert.
+    - cron: "0 4 * * 1"
+
+jobs:
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # De brands-check eist een logo in home-assistant/brands. Dat is pas
+          # nodig bij opname in de HACS-standaardlijst, niet voor een custom repo.
+          ignore: brands
