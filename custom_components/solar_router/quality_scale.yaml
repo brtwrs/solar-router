@@ -99,4 +99,11 @@ rules:
   inject-websession:
     status: exempt
     comment: Er wordt geen HTTP gedaan.
-  strict-typing: done
+  strict-typing:
+    status: done
+    comment: |
+      py.typed aanwezig en mypy loopt schoon met de instellingen van HA core
+      (zie pyproject.toml). Kanttekening: HA zelf is in de CI niet
+      geinstalleerd, dus homeassistant.* is voor mypy Any. Gecontroleerd zijn
+      daarmee onze eigen annotaties en hun consistentie, niet of de HA-API
+      correct wordt aangeroepen.
