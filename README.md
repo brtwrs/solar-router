@@ -28,7 +28,7 @@ did not exist before that release.
 This is not in the default HACS store. Add it as a custom repository:
 
 1. HACS → three dots, top right → **Custom repositories**
-2. Repository `brtwrs/solar-router`, type **Integration**
+2. Repository `bartwijers/solar-router`, type **Integration**
 3. Find **Solar Router** in HACS, install it, restart Home Assistant
 
 ### By hand
@@ -93,6 +93,6 @@ MIT — see [LICENSE](LICENSE).
 
 [hacs-badge]: https://img.shields.io/badge/HACS-custom-41BDF5.svg
 [hacs-url]: https://hacs.xyz/
-[release-badge]: https://img.shields.io/github/v/release/brtwrs/solar-router
-[release-url]: https://github.com/brtwrs/solar-router/releases
-[license-badge]: https://img.shields.io/github/license/brtwrs/solar-router
+[release-badge]: https://img.shields.io/github/v/release/bartwijers/solar-router
+[release-url]: https://github.com/bartwijers/solar-router/releases
+[license-badge]: https://img.shields.io/github/license/bartwijers/solar-router
