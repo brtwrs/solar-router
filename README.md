@@ -38,21 +38,31 @@ flowchart LR
 
 A priority is just a number, and **the lower one goes first**.
 
-Here is what that buys you. Same two devices, same 4000 W of surplus. The only
-difference between these two pictures is which device holds the lower number:
+Here is what that buys you. Same two devices throughout; the only things that
+change are which one holds the lower number, and how much sun there is:
 
 ```text
-boiler 10, car 20
+4000 W of surplus  ·  boiler 10, car 20
    boiler  ██████████████████████████████  3000 W  full
-   car     ······························       0  off, 1000 W is too little
+   car     ·····················              0 W  off, 1000 W is too little
 
-car 10, boiler 20
+4000 W of surplus  ·  car 10, boiler 20
    car     █████████████████████           2100 W  on
    boiler  ███████████████████             1900 W  the remainder
+
+2000 W of surplus  ·  car 10, boiler 20
+   car     ·····················              0 W  off, it needs 2100 W
+   boiler  ████████████████████            2000 W  takes the lot
 ```
 
-Same roof, same weather, same hardware. One number decides whether your water
-gets hot or your car gets charged.
+The first two are the same 4000 W split two ways. Same roof, same weather, same
+hardware — one number decides whether your water gets hot or your car gets
+charged.
+
+The third is the case that makes priorities safe to hand out. The car is first
+in line, but 2000 W will not start a 2100 W charger, so it stands aside and the
+boiler takes everything. **A consumer that cannot use its share never blocks the
+ones below it.** The car only wins from 2100 W upwards.
 
 That split is recalculated every cycle against whatever surplus exists right
 then, so the order keeps holding as the day moves. With the boiler first:
@@ -64,13 +74,8 @@ then, so the order keeps holding as the day moves. With the boiler first:
 | 1200 W | 1200 W, throttled | **off** — nothing left |
 | 0 W | off | off |
 
-Two things worth knowing about how the list is walked:
-
-- **A consumer that can't use its share doesn't hold up the ones below it.** An
-  on/off device that doesn't fit is skipped, and the next one gets the full
-  remainder.
-- **Its Managed switch takes it off the list entirely**, so everything below it
-  moves up.
+Each consumer also has a **Managed** switch. Turning it off takes that consumer
+off the list entirely, and everything below it moves up.
 
 ## How the budget is worked out
 
