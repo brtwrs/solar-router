@@ -4,13 +4,18 @@
 [![release][release-badge]][release-url]
 [![license][license-badge]](LICENSE)
 
-**Spend your own solar power instead of exporting it.**
+**Spend your own solar power instead of exporting it — on the things you care
+about most, first.**
 
-Point it at the sensor that reports your grid power, then tell it which devices
-are allowed to eat surplus and in what order. Every cycle it works out how much
-you are giving away, and hands that out — top priority first. Devices with an
-adjustable power setting get dialled to whatever fits. On/off devices get
-switched when their full draw fits.
+Most solar diverters drive one load: a boiler, and that is it. This one takes a
+list of consumers, each with a **priority**, and cascades the surplus down that
+list every cycle. Hot water before the car. The car before the pool pump. The
+pool pump before the grid.
+
+Point it at the sensor that reports your grid power, add your consumers, and it
+works out how much you are giving away and hands it out in your order. Devices
+with an adjustable power setting get dialled to whatever fits; on/off devices
+get switched when their full draw fits.
 
 Deliberately reactive, not predictive. No weather forecast, no price
 optimisation; it looks at what is happening right now and divides it up. If you
@@ -28,6 +33,37 @@ flowchart LR
 ```
 
 ---
+
+## Priorities are the point
+
+A priority is just a number, and **lower is served first**. What makes it useful
+is that the decision is remade every cycle against the surplus of that moment,
+so the order holds no matter what the sun does.
+
+Say the boiler is priority 10 and the car is 20, and 4 kW is coming off the roof:
+
+| Surplus | Boiler (0–3000 W, dialled) | Car (2100 W, all or nothing) |
+|--:|---|---|
+| 4000 W | 3000 W — full | 1000 W left, does not fit → **off** |
+| 5500 W | 3000 W — full | fits → **on** at 2100 W |
+| 1200 W | 1200 W — throttled | nothing left → **off** |
+| 0 W | off | off |
+
+Flip the two priorities around and the car wins instead: it takes its 2100 W
+first and the boiler gets the remainder. Same hardware, same weather, different
+outcome — and it is one number in the UI.
+
+That ordering is worth thinking about. A kilowatt-hour into hot water displaces
+gas at full value; the same kilowatt-hour into a car battery comes back out with
+losses, and a slow charge may not finish anyway. Which is why the boiler usually
+belongs first, even though the car feels more valuable.
+
+Two things make the order behave:
+
+- **A consumer that cannot use its share does not block the ones below it.** An
+  on/off device that does not fit is skipped and the next one gets a turn.
+- **Taking a consumer out of the routing** with its **Managed** switch removes it
+  from the list entirely, so everything below moves up.
 
 ## The one thing worth understanding
 
