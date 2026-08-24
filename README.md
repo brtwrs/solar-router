@@ -88,6 +88,44 @@ makes the export disappear, which looks like a shortage, which switches the
 boiler off again — and round it goes. With it, the budget stays stable and each
 consumer simply holds its share.
 
+## Getting the timing right
+
+The router writes a setpoint, the device ramps up, and only then does your meter
+notice — in that order, and none of it is instant. That lag is the difference
+between a router that settles and one that hunts up and down all afternoon.
+Three settings control it.
+
+| Setting | What it does |
+|---|---|
+| **Recalculate every** | How often a decision gets made at all |
+| **Settle** | Extra wait after acting, on top of waiting for a fresh meter reading |
+| **Gain** | How far towards the target it moves each cycle |
+
+**Measure your dead time instead of guessing at it.** You need two numbers: how
+often your grid meter publishes a new value, and how long your device takes
+before that change shows up there. A P1 meter on a 10 s cycle plus a boiler that
+responds in about 1.5 s gives you roughly 11 s. Set the interval and the settle
+time around that and no lower — 15 s each, in that example.
+
+Deciding faster than your dead time doesn't make the router quicker, it makes it
+wrong. It acts, sees no effect yet, acts again, and then has to unwind both
+steps. That is the oscillation people usually blame on the algorithm.
+
+The router already refuses to decide twice on the same meter reading, so settle
+is a margin *on top of* that. It's there for devices that accept a setpoint
+immediately but take a while to actually draw the power.
+
+**Settle is deliberately one global setting**, because it describes your meter,
+and your meter is shared by everything. Protection for an individual device is
+what the minimum on/off times are for. A car charger that shouldn't be switched
+every two minutes wants 300 s there — not a longer settle time for the whole
+system, which would slow down your boiler for no reason.
+
+**Gain is the fallback** for lag you can't design away. At 1.0 a modulating
+consumer jumps straight to its target, which overshoots whenever the meter is
+behind. At 0.5 it closes half the gap each cycle and slides in without
+overshooting. Reach for that before you start lengthening the interval.
+
 ## Getting started
 
 You need **Home Assistant 2025.3.0** or newer. Consumers are config subentries,
@@ -149,9 +187,10 @@ The car has the lower priority number, so it goes first — it needs its full
 minimums stop the plug chattering on a cloudy day; the boiler doesn't need that,
 because dialling it costs nothing.
 
-Base the settle time on your own meter. If your P1 meter refreshes every 10 s
-and the boiler responds in about 1.5 s, you have roughly 11 s of dead time, so
-15 s fits. Setting it higher only makes the router sluggish.
+The 15 s interval and settle time come from measuring this particular setup: a
+P1 meter on a 10 s cycle and a boiler that responds in about 1.5 s, so roughly
+11 s of dead time. Yours will differ — see [Getting the timing
+right](#getting-the-timing-right).
 
 ## When it deliberately does nothing
 
