@@ -342,93 +342,66 @@ def test_missing_meter_timestamp_means_wait():
     assert should_settle(grid_updated_at=None, last_action_at=110, now=200) is True
 
 
-# --------------------------------------------------------------- damping
+# --------------------------------------------------------- modulerend regelen
 
 
-def test_gain_one_jumps_straight_to_target():
-    """Standaardgedrag blijft ongewijzigd."""
-    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=1.0))[
-        "boiler"
-    ]
+def test_jumps_straight_to_the_target():
+    """Geen demping meer: wat het budget toelaat wordt meteen geschreven."""
+    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)]))["boiler"]
     assert d.allocated == 3000
 
 
-def test_gain_half_moves_halfway():
-    d = by_key(allocate(3000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))[
+def test_comes_straight_down_too():
+    d = by_key(allocate(1000, [dial("boiler", pmax=3000, allocated=3000)]))["boiler"]
+    assert d.allocated == 1000
+
+
+def test_at_least_the_minimum_once_it_fits():
+    d = by_key(allocate(900, [dial("boiler", pmin=800, pmax=3000, allocated=0)]))[
         "boiler"
     ]
-    assert d.allocated == 1500
+    assert d.allocated == 900
 
 
-def test_damping_converges_instead_of_swinging():
-    """Herhaalde rondes met hetzelfde budget naderen het doel."""
-    stand = 0.0
-    reeks = []
-    for _ in range(6):
-        d = by_key(
-            allocate(2000, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5)
-        )["boiler"]
-        stand = d.allocated
-        reeks.append(round(stand))
-    assert reeks == [1000, 1500, 1750, 1875, 1938, 1969]
-    assert all(reeks[i] < reeks[i + 1] for i in range(len(reeks) - 1))  # nooit terug
-
-
-def test_damping_also_works_downward():
-    d = by_key(allocate(1000, [dial("boiler", pmax=3000, allocated=3000)], gain=0.5))[
+def test_target_below_minimum_switches_off():
+    """Onder het minimum is uit ook echt uit, niet het minimum aanhouden."""
+    d = by_key(allocate(300, [dial("boiler", pmin=800, pmax=3000, allocated=3000)]))[
         "boiler"
     ]
-    assert d.allocated == 2000  # halverwege omlaag
-
-
-def test_damped_value_never_lands_below_the_minimum():
-    """Halverwege kan onder het minimum uitkomen; dan het minimum aanhouden."""
-    d = by_key(
-        allocate(3000, [dial("boiler", pmin=800, pmax=3000, allocated=0)], gain=0.2)
-    )["boiler"]
-    assert d.allocated == 800  # 0 + 0.2*3000 = 600, opgetrokken naar het minimum
-
-
-def test_target_below_minimum_still_switches_off():
-    """Dempen mag uit-zetten niet in de weg zitten."""
-    d = by_key(
-        allocate(300, [dial("boiler", pmin=800, pmax=3000, allocated=3000)], gain=0.5)
-    )["boiler"]
     assert d.allocated == 0
 
 
 # --------------------------------------------------------------- dode zone
 
 
-def test_damping_towards_zero_actually_reaches_zero():
-    """Zonder dode zone: 176 -> 88 -> 44 -> 22 -> ... eeuwig."""
-    stand = 176.0
-    for _ in range(6):
-        d = by_key(allocate(0, [dial("boiler", pmax=3000, allocated=stand)], gain=0.5))[
-            "boiler"
-        ]
-        stand = d.allocated
-        if stand == 0:
-            break
-    assert stand == 0
-
-
 def test_dead_zone_scales_with_the_maximum():
     """1% van het maximum, dus 30 W bij een boiler van 3 kW."""
-    d = by_key(allocate(50, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))[
-        "boiler"
-    ]
-    assert d.allocated == 0  # 0 + 0.5*50 = 25, onder de 30
+    assert (
+        by_key(allocate(25, [dial("boiler", pmax=3000, allocated=0)]))[
+            "boiler"
+        ].allocated
+        == 0
+    )
+    assert (
+        by_key(allocate(40, [dial("boiler", pmax=3000, allocated=0)]))[
+            "boiler"
+        ].allocated
+        == 40
+    )
 
 
 def test_small_device_keeps_a_sane_floor():
     """Bij een klein apparaat blijft de dode zone 10 W, niet 1 W."""
-    d = by_key(allocate(16, [dial("pomp", pmax=100, allocated=0)], gain=0.5))["pomp"]
-    assert d.allocated == 0  # 8 W, onder de 10
+    assert (
+        by_key(allocate(8, [dial("pomp", pmax=100, allocated=0)]))["pomp"].allocated
+        == 0
+    )
+    assert (
+        by_key(allocate(16, [dial("pomp", pmax=100, allocated=0)]))["pomp"].allocated
+        == 16
+    )
 
 
 def test_normal_values_are_untouched_by_the_dead_zone():
-    d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=0)], gain=0.5))[
-        "boiler"
-    ]
-    assert d.allocated == 1000
+    d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=0)]))["boiler"]
+    assert d.allocated == 2000

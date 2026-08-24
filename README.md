@@ -91,25 +91,34 @@ consumer simply holds its share.
 ## Getting the timing right
 
 The router writes a setpoint, the device ramps up, and only then does your meter
-notice — in that order, and none of it is instant. That lag is the difference
-between a router that settles and one that hunts up and down all afternoon.
-Three settings control it.
+notice — in that order, and none of it is instant. Add those up and you get the
+loop's dead time, which is the single thing that decides whether the router
+settles or hunts up and down all afternoon.
+
+Two settings control it, and **setting them too tight is what makes it
+oscillate**:
 
 | Setting | What it does |
 |---|---|
 | **Recalculate every** | How often a decision gets made at all |
 | **Settle** | Extra wait after acting, on top of waiting for a fresh meter reading |
-| **Gain** | How far towards the target it moves each cycle |
-
-**Measure your dead time instead of guessing at it.** You need two numbers: how
-often your grid meter publishes a new value, and how long your device takes
-before that change shows up there. A P1 meter on a 10 s cycle plus a boiler that
-responds in about 1.5 s gives you roughly 11 s. Set the interval and the settle
-time around that and no lower — 15 s each, in that example.
 
 Deciding faster than your dead time doesn't make the router quicker, it makes it
-wrong. It acts, sees no effect yet, acts again, and then has to unwind both
-steps. That is the oscillation people usually blame on the algorithm.
+wrong. It acts, sees no effect yet — because the meter is still describing the
+world from before — acts again on that stale picture, and then has to unwind
+both steps. The result is a boiler that swings between full and off every few
+seconds, and it looks exactly like a bug in the allocation logic. It isn't. It's
+the timing.
+
+**So measure your dead time instead of guessing at it.** You need two numbers:
+how often your grid meter publishes a new value, and how long your device takes
+before that change shows up there. A P1 meter on a 10 s cycle plus a boiler that
+responds in about 1.5 s gives you roughly 11 s. Set the interval and the settle
+time around that and never below it — 15 s each, in that example.
+
+Erring high costs you very little: a slightly sluggish router still spends the
+same surplus, just a few seconds later. Erring low costs you the stability of
+the whole thing.
 
 The router already refuses to decide twice on the same meter reading, so settle
 is a margin *on top of* that. It's there for devices that accept a setpoint
@@ -120,11 +129,6 @@ and your meter is shared by everything. Protection for an individual device is
 what the minimum on/off times are for. A car charger that shouldn't be switched
 every two minutes wants 300 s there — not a longer settle time for the whole
 system, which would slow down your boiler for no reason.
-
-**Gain is the fallback** for lag you can't design away. At 1.0 a modulating
-consumer jumps straight to its target, which overshoots whenever the meter is
-behind. At 0.5 it closes half the gap each cycle and slides in without
-overshooting. Reach for that before you start lengthening the interval.
 
 ## Getting started
 
@@ -180,7 +184,7 @@ A 10 kW roof, a boiler with an adjustable element, and a car charger.
 | **Boiler** | 50 | 0–3000 W | 0 / 0 | `number.boiler_power` |
 
 Hub: `sensor.grid_net_power`, export negative, no reserve, recalculate every
-15 s, settle 15 s, gain 1.0.
+15 s, settle 15 s.
 
 The car has the lower priority number, so it goes first — it needs its full
 2100 W or nothing, while the boiler is happy with whatever is left. The 300 s
@@ -229,7 +233,7 @@ per-consumer `allocations` show exactly what the last cycle decided, and why.
 | `settling: true` and nothing moving | Waiting for a fresher meter reading. Lower the settle time, or accept that your meter is slow. |
 | A consumer stuck on `held on` / `held off` | Its minimum on/off time hasn't elapsed. |
 | Surplus available but an on/off device idle | Its full draw doesn't fit in what's left. |
-| Everything oscillating | Lower the gain. At 1.0 it jumps straight to the target, which overshoots when the meter lags. |
+| Everything oscillating | Your interval or settle time is shorter than the loop's dead time. See [Getting the timing right](#getting-the-timing-right). |
 
 For a bug report, use **Settings → Devices & Services → Solar Router → ⋮ →
 Download diagnostics**. It contains the config, the last cycle, and what every

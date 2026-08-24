@@ -110,21 +110,6 @@ def _claim_for(c: Consumer, allocated: float) -> float:
     return max(0.0, min(c.measured, allocated))
 
 
-def _demp(huidig: float, doel: float, gain: float) -> float:
-    """Beweeg maar een deel van de afstand naar het doel.
-
-    Springen naar precies wat het budget toelaat gaat mis zodra de meting en
-    het werkelijke verbruik niet gelijk lopen: je schiet erover heen, corrigeert
-    te ver terug, en slingert. Met een versterking onder 1 nader je het doel in
-    stappen en dooft de slinger uit.
-
-    gain 1.0 schakelt dit uit.
-    """
-    if gain >= 1.0:
-        return doel
-    return huidig + (doel - huidig) * gain
-
-
 def _dode_zone(c: Consumer) -> float:
     """Waarde waaronder aanzetten geen zin meer heeft.
 
@@ -135,7 +120,7 @@ def _dode_zone(c: Consumer) -> float:
 
 
 def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
-    c: Consumer, remaining: float, gain: float = 1.0
+    c: Consumer, remaining: float
 ) -> Decision:
     """Work out what this consumer gets from what is left."""
     if not c.managed:
@@ -143,8 +128,7 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
 
     if c.modulating:
         doel = max(0.0, min(c.power_max, remaining))
-        give = _demp(c.allocated, doel, gain)
-        give = max(0.0, min(c.power_max, give))
+        give = doel
 
         # Onder het minimum heeft dempen geen zin: dan is uit ook echt uit.
         if doel < c.power_min:
@@ -152,9 +136,8 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
         elif give < c.power_min:
             give = c.power_min
 
-        # Dempen richting nul haalt nul nooit: 176 -> 88 -> 44 -> 22 -> 11 ...
-        # Onder de dode zone gewoon uitzetten, anders blijft hij eeuwig
-        # zinloze waarden schrijven.
+        # Onder de dode zone gewoon uitzetten: een paar watt naar een
+        # modulerend apparaat schrijven doet niets en houdt het wel bezig.
         if give < _dode_zone(c):
             give = 0.0
 
@@ -204,19 +187,13 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
     )
 
 
-def allocate(
-    budget: float, consumers: list[Consumer], gain: float = 1.0
-) -> list[Decision]:
-    """Hand the budget out in priority order (lower number first).
-
-    gain onder 1 laat modulerende verbruikers stapsgewijs naar hun doel
-    bewegen in plaats van er in een keer heen te springen.
-    """
+def allocate(budget: float, consumers: list[Consumer]) -> list[Decision]:
+    """Hand the budget out in priority order (lower number first)."""
     decisions: list[Decision] = []
     remaining = budget
 
     for c in sorted(consumers, key=lambda x: x.priority):
-        d = _decide_one(c, remaining, gain)
+        d = _decide_one(c, remaining)
         decisions.append(d)
         remaining -= d.claim
 
