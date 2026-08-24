@@ -36,22 +36,33 @@ flowchart LR
 
 ## Priorities are the point
 
-A priority is just a number, and **the lower one goes first**. The split is
-recalculated every cycle against whatever surplus exists at that moment, so your
-order holds all day without you touching anything.
+A priority is just a number, and **the lower one goes first**.
 
-Boiler on priority 10, car on 20:
+Here is what that buys you. Same two devices, same 4000 W of surplus. The only
+difference between these two pictures is which device holds the lower number:
 
-| Surplus | Boiler (0–3000 W, dialled) | Car (2100 W, all or nothing) |
+```text
+boiler 10, car 20
+   boiler  ██████████████████████████████  3000 W  full
+   car     ······························       0  off, 1000 W is too little
+
+car 10, boiler 20
+   car     █████████████████████           2100 W  on
+   boiler  ███████████████████             1900 W  the remainder
+```
+
+Same roof, same weather, same hardware. One number decides whether your water
+gets hot or your car gets charged.
+
+That split is recalculated every cycle against whatever surplus exists right
+then, so the order keeps holding as the day moves. With the boiler first:
+
+| Surplus | Boiler | Car |
 |--:|---|---|
-| 4000 W | 3000 W, full | 1000 W left, doesn't fit → **off** |
-| 5500 W | 3000 W, full | fits → **on** at 2100 W |
-| 1200 W | 1200 W, throttled | nothing left → **off** |
+| 5500 W | 3000 W, full | **on** at 2100 W — it fits |
+| 4000 W | 3000 W, full | **off** — only 1000 W left |
+| 1200 W | 1200 W, throttled | **off** — nothing left |
 | 0 W | off | off |
-
-Swap the two numbers and the car wins instead: it claims its 2100 W first and
-the boiler lives on the remainder. Same hardware, same weather, different
-outcome, one number in the UI.
 
 Two things worth knowing about how the list is walked:
 
