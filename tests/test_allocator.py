@@ -10,7 +10,7 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parents[1] / "custom_components" / "solar_router")
 )
 
-from allocator import Consumer, allocate, budget_from, unused
+from allocator import Consumer, Phase, allocate, budget_from, unused
 
 
 def by_key(decisions):
@@ -413,10 +413,13 @@ def test_normal_values_are_untouched_by_the_dead_zone():
 # een zekering van 25 A. Bart zette hem met de hand uit.
 
 
+def l2(stroom, grens=25):
+    return {"L2": Phase(current=stroom, limit=grens)}
+
+
 def test_phase_over_limit_switches_off_even_when_held():
-    car = relay("car", rated=2100, currently_on=True, held=True,
-                phase_current=26, phase_limit=25)
-    d = by_key(allocate(5000, [car]))["car"]
+    car = relay("car", rated=2100, currently_on=True, held=True, phase="L2")
+    d = by_key(allocate(5000, [car], l2(26)))["car"]
     assert d.switch_on is False
     assert d.reason == "phase limit"
     assert d.claim == 0
@@ -424,35 +427,47 @@ def test_phase_over_limit_switches_off_even_when_held():
 
 def test_phase_without_room_does_not_start():
     # 17 A op de fase zonder de auto, plus 9,1 A voor de auto = boven 25 A
-    car = relay("car", rated=2100, phase_current=17, phase_limit=25)
-    d = by_key(allocate(5000, [car]))["car"]
+    car = relay("car", rated=2100, phase="L2")
+    d = by_key(allocate(5000, [car], l2(17)))["car"]
     assert d.switch_on is None
     assert d.reason == "phase limit"
 
 
 def test_phase_with_room_starts_as_usual():
-    car = relay("car", rated=2100, phase_current=10, phase_limit=25)
-    d = by_key(allocate(5000, [car]))["car"]
-    assert d.switch_on is True
+    car = relay("car", rated=2100, phase="L2")
+    assert by_key(allocate(5000, [car], l2(10)))["car"].switch_on is True
 
 
 def test_own_draw_does_not_count_against_itself():
     # 24 A inclusief de eigen 9,1 A: onder de grens, dus gewoon aan laten
-    car = relay("car", rated=2100, currently_on=True, measured=2100,
-                phase_current=24, phase_limit=25)
-    d = by_key(allocate(5000, [car]))["car"]
+    car = relay("car", rated=2100, currently_on=True, measured=2100, phase="L2")
+    d = by_key(allocate(5000, [car], l2(24)))["car"]
     assert d.switch_on is None
     assert d.allocated == 2100
 
 
 def test_phase_caps_a_dial():
     # 20 A van anderen laat 5 A = 1150 W over voor een modulerende boiler
-    boiler = dial("boiler", pmax=3000, phase_current=20, phase_limit=25)
-    d = by_key(allocate(5000, [boiler]))["boiler"]
-    assert d.allocated == 5 * 230
+    boiler = dial("boiler", pmax=3000, phase="L2")
+    assert by_key(allocate(5000, [boiler], l2(20)))["boiler"].allocated == 5 * 230
 
 
-def test_no_phase_sensor_means_no_limit():
+def test_two_consumers_share_one_phase():
+    # 5 A op L2: de auto (9,1 A) past, daarna is er nog ~10,9 A = ~2500 W voor
+    # de boiler. Zonder delen kreeg de boiler de volle 3000 W en ging L2 over.
+    car = relay("car", priority=10, rated=2100, phase="L2")
+    boiler = dial("boiler", priority=20, pmax=3000, phase="L2")
+    d = by_key(allocate(6000, [car, boiler], l2(5)))
+    assert d["car"].switch_on is True
+    assert d["boiler"].allocated == (25 - 5) * 230 - 2100
+
+
+def test_other_phase_is_not_limited():
+    car = relay("car", rated=2100, currently_on=True, held=True, phase="L3")
+    d = by_key(allocate(5000, [car], l2(26)))["car"]
+    assert d.switch_on is None
+
+
+def test_no_phase_means_no_limit():
     car = relay("car", rated=2100, currently_on=True, held=True)
-    d = by_key(allocate(-3000, [car]))["car"]
-    assert d.reason == "held on"
+    assert by_key(allocate(-3000, [car], l2(26)))["car"].reason == "held on"

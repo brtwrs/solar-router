@@ -31,13 +31,29 @@ CONF_POWER_MAX: Final = "power_max"
 CONF_PRIORITY: Final = "priority"
 CONF_MIN_ON: Final = "min_on"
 CONF_MIN_OFF: Final = "min_off"
-CONF_PHASE_SENSOR: Final = "phase_sensor"
-CONF_PHASE_LIMIT: Final = "phase_limit"
+CONF_PHASE: Final = "phase"
 
 DEFAULT_PRIORITY: Final = 50
 DEFAULT_MIN_ON: Final = 300
 DEFAULT_MIN_OFF: Final = 300
+
+# --- phases: sensor and limit per phase on the hub, the phase on each consumer
+PHASES: Final = ("L1", "L2", "L3")
+PHASE_NONE: Final = "none"
 DEFAULT_PHASE_LIMIT: Final = 25
+
+
+def conf_phase_sensor(phase: str) -> str:
+    """Option key for the current sensor of a phase."""
+    return f"phase_sensor_{phase.lower()}"
+
+
+def conf_phase_limit(phase: str) -> str:
+    """Option key for the limit of a phase."""
+    return f"phase_limit_{phase.lower()}"
+
+# Fired when a phase limit switches a consumer off or turns it down to zero.
+EVENT_PHASE_LIMIT: Final = "solar_router_phase_limit"
 
 # --- reasons reported alongside an allocation ---
 # The allocator has its own set; this one is decided here because the allocator

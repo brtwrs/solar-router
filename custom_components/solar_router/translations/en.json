@@ -9,12 +9,24 @@
           "grid_export_is_negative": "Export shows as a negative value",
           "reserve": "Keep in reserve",
           "interval": "Recalculate every",
-          "settle": "Settle time"
+          "settle": "Settle time",
+          "phase_sensor_l1": "Current sensor L1 (optional)",
+          "phase_limit_l1": "Limit L1",
+          "phase_sensor_l2": "Current sensor L2 (optional)",
+          "phase_limit_l2": "Limit L2",
+          "phase_sensor_l3": "Current sensor L3 (optional)",
+          "phase_limit_l3": "Limit L3"
         },
         "data_description": {
           "reserve": "Surplus to leave untouched, as a buffer against short peaks.",
           "interval": "Shorter reacts faster but switches more often.",
-          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up."
+          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up.",
+          "phase_sensor_l1": "Current on L1 as your grid meter measures it. Leave empty and nothing on L1 is limited.",
+          "phase_limit_l1": "The most L1 may carry. Usually your main fuse.",
+          "phase_sensor_l2": "Current on L2 as your grid meter measures it. Leave empty and nothing on L2 is limited.",
+          "phase_limit_l2": "The most L2 may carry. Usually your main fuse.",
+          "phase_sensor_l3": "Current on L3 as your grid meter measures it. Leave empty and nothing on L3 is limited.",
+          "phase_limit_l3": "The most L3 may carry. Usually your main fuse."
         }
       }
     },
@@ -34,10 +46,22 @@
           "grid_export_is_negative": "Export shows as a negative value",
           "reserve": "Keep in reserve",
           "interval": "Recalculate every",
-          "settle": "Settle time"
+          "settle": "Settle time",
+          "phase_sensor_l1": "Current sensor L1 (optional)",
+          "phase_limit_l1": "Limit L1",
+          "phase_sensor_l2": "Current sensor L2 (optional)",
+          "phase_limit_l2": "Limit L2",
+          "phase_sensor_l3": "Current sensor L3 (optional)",
+          "phase_limit_l3": "Limit L3"
         },
         "data_description": {
-          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up."
+          "settle": "Extra wait after each change, on top of waiting for a fresh meter reading. Raise this if a device takes a while before its draw shows up.",
+          "phase_sensor_l1": "Current on L1 as your grid meter measures it. Leave empty and nothing on L1 is limited.",
+          "phase_limit_l1": "The most L1 may carry. Usually your main fuse.",
+          "phase_sensor_l2": "Current on L2 as your grid meter measures it. Leave empty and nothing on L2 is limited.",
+          "phase_limit_l2": "The most L2 may carry. Usually your main fuse.",
+          "phase_sensor_l3": "Current on L3 as your grid meter measures it. Leave empty and nothing on L3 is limited.",
+          "phase_limit_l3": "The most L3 may carry. Usually your main fuse."
         }
       }
     }
@@ -64,8 +88,7 @@
             "min_on": "Minimum on time",
             "min_off": "Minimum off time",
             "power_sensor": "Power sensor (optional)",
-            "phase_sensor": "Phase current sensor (optional)",
-            "phase_limit": "Phase limit"
+            "phase": "Phase"
           },
           "data_description": {
             "number_entity": "A number entity you can dial up and down. Zero means off, so a switch is not required.",
@@ -76,8 +99,7 @@
             "min_on": "Once started, keep it running at least this long.",
             "min_off": "Once stopped, leave it off at least this long.",
             "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice.",
-            "phase_sensor": "The current on the phase this device is on, as the grid meter measures it. With it, the device will not start if that would push the phase over the limit, and is switched off at once when the phase is over it, minimum on time or not.",
-            "phase_limit": "Maximum current on that phase. Usually your main fuse."
+            "phase": "The phase this device is on. It will not start if that pushes the phase over its limit, and is switched off at once when the phase is over it, minimum on time or not."
           }
         },
         "reconfigure": {
@@ -92,8 +114,7 @@
             "min_on": "Minimum on time",
             "min_off": "Minimum off time",
             "power_sensor": "Power sensor (optional)",
-            "phase_sensor": "Phase current sensor (optional)",
-            "phase_limit": "Phase limit"
+            "phase": "Phase"
           },
           "data_description": {
             "number_entity": "A number entity you can dial up and down. Zero means off, so a switch is not required.",
@@ -104,8 +125,7 @@
             "min_on": "Once started, keep it running at least this long.",
             "min_off": "Once stopped, leave it off at least this long.",
             "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice.",
-            "phase_sensor": "The current on the phase this device is on, as the grid meter measures it. With it, the device will not start if that would push the phase over the limit, and is switched off at once when the phase is over it, minimum on time or not.",
-            "phase_limit": "Maximum current on that phase. Usually your main fuse."
+            "phase": "The phase this device is on. It will not start if that pushes the phase over its limit, and is switched off at once when the phase is over it, minimum on time or not."
           }
         }
       },
@@ -128,6 +148,16 @@
     "switch": {
       "managed": {
         "name": "Managed"
+      }
+    }
+  },
+  "selector": {
+    "phase": {
+      "options": {
+        "none": "Not limited",
+        "L1": "L1",
+        "L2": "L2",
+        "L3": "L3"
       }
     }
   }

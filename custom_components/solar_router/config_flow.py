@@ -25,8 +25,7 @@ from .const import (
     CONF_MIN_ON,
     CONF_NAME,
     CONF_NUMBER_ENTITY,
-    CONF_PHASE_LIMIT,
-    CONF_PHASE_SENSOR,
+    CONF_PHASE,
     CONF_POWER_MAX,
     CONF_POWER_MIN,
     CONF_POWER_SENSOR,
@@ -43,7 +42,11 @@ from .const import (
     DEFAULT_RESERVE,
     DEFAULT_SETTLE,
     DOMAIN,
+    PHASE_NONE,
+    PHASES,
     SUBENTRY_TYPE_CONSUMER,
+    conf_phase_limit,
+    conf_phase_sensor,
 )
 
 
@@ -94,8 +97,34 @@ def _hub_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                     min=0, max=600, step=5, unit_of_measurement="s", mode="box"
                 )
             ),
+            **_phase_fields(d),
         }
     )
+
+
+def _phase_fields(d: dict[str, Any]) -> dict[Any, Any]:
+    """Per phase: the current sensor (optional) and the limit it may reach."""
+    velden: dict[Any, Any] = {}
+    for fase in PHASES:
+        velden[
+            vol.Optional(
+                conf_phase_sensor(fase),
+                description={"suggested_value": d.get(conf_phase_sensor(fase))},
+            )
+        ] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor", device_class="current")
+        )
+        velden[
+            vol.Required(
+                conf_phase_limit(fase),
+                default=d.get(conf_phase_limit(fase), DEFAULT_PHASE_LIMIT),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=1, max=80, step=1, unit_of_measurement="A", mode="box"
+            )
+        )
+    return velden
 
 
 class SolarRouterConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -215,20 +244,13 @@ class ConsumerSubentryFlow(ConfigSubentryFlow):
                         min=0, max=7200, step=30, unit_of_measurement="s", mode="box"
                     )
                 ),
-                vol.Optional(
-                    CONF_PHASE_SENSOR,
-                    description={"suggested_value": d.get(CONF_PHASE_SENSOR)},
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor", device_class="current"
-                    )
-                ),
                 vol.Required(
-                    CONF_PHASE_LIMIT,
-                    default=d.get(CONF_PHASE_LIMIT, DEFAULT_PHASE_LIMIT),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=1, max=80, step=1, unit_of_measurement="A", mode="box"
+                    CONF_PHASE, default=d.get(CONF_PHASE, PHASE_NONE)
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[PHASE_NONE, *PHASES],
+                        translation_key="phase",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             }

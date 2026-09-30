@@ -9,12 +9,24 @@
           "grid_export_is_negative": "Teruglevering is een negatieve waarde",
           "reserve": "Reserve aanhouden",
           "interval": "Herberekenen elke",
-          "settle": "Insteltijd"
+          "settle": "Insteltijd",
+          "phase_sensor_l1": "Stroomsensor L1 (optioneel)",
+          "phase_limit_l1": "Grens L1",
+          "phase_sensor_l2": "Stroomsensor L2 (optioneel)",
+          "phase_limit_l2": "Grens L2",
+          "phase_sensor_l3": "Stroomsensor L3 (optioneel)",
+          "phase_limit_l3": "Grens L3"
         },
         "data_description": {
           "reserve": "Overschot dat je onaangeroerd laat, als buffer tegen korte pieken.",
           "interval": "Korter reageert sneller, maar schakelt vaker.",
-          "settle": "Extra wachttijd na elke ingreep, boven op het wachten op een verse meting. Verhoog dit als een apparaat er even over doet voordat zijn verbruik zichtbaar wordt."
+          "settle": "Extra wachttijd na elke ingreep, boven op het wachten op een verse meting. Verhoog dit als een apparaat er even over doet voordat zijn verbruik zichtbaar wordt.",
+          "phase_sensor_l1": "De stroom op L1 zoals je netmeter die meet. Leeg laten betekent dat niets op L1 begrensd wordt.",
+          "phase_limit_l1": "Wat L1 maximaal mag dragen. Meestal je hoofdzekering.",
+          "phase_sensor_l2": "De stroom op L2 zoals je netmeter die meet. Leeg laten betekent dat niets op L2 begrensd wordt.",
+          "phase_limit_l2": "Wat L2 maximaal mag dragen. Meestal je hoofdzekering.",
+          "phase_sensor_l3": "De stroom op L3 zoals je netmeter die meet. Leeg laten betekent dat niets op L3 begrensd wordt.",
+          "phase_limit_l3": "Wat L3 maximaal mag dragen. Meestal je hoofdzekering."
         }
       }
     },
@@ -34,10 +46,22 @@
           "grid_export_is_negative": "Teruglevering is een negatieve waarde",
           "reserve": "Reserve aanhouden",
           "interval": "Herberekenen elke",
-          "settle": "Insteltijd"
+          "settle": "Insteltijd",
+          "phase_sensor_l1": "Stroomsensor L1 (optioneel)",
+          "phase_limit_l1": "Grens L1",
+          "phase_sensor_l2": "Stroomsensor L2 (optioneel)",
+          "phase_limit_l2": "Grens L2",
+          "phase_sensor_l3": "Stroomsensor L3 (optioneel)",
+          "phase_limit_l3": "Grens L3"
         },
         "data_description": {
-          "settle": "Extra wachttijd na elke ingreep, boven op het wachten op een verse meting. Verhoog dit als een apparaat er even over doet voordat zijn verbruik zichtbaar wordt."
+          "settle": "Extra wachttijd na elke ingreep, boven op het wachten op een verse meting. Verhoog dit als een apparaat er even over doet voordat zijn verbruik zichtbaar wordt.",
+          "phase_sensor_l1": "De stroom op L1 zoals je netmeter die meet. Leeg laten betekent dat niets op L1 begrensd wordt.",
+          "phase_limit_l1": "Wat L1 maximaal mag dragen. Meestal je hoofdzekering.",
+          "phase_sensor_l2": "De stroom op L2 zoals je netmeter die meet. Leeg laten betekent dat niets op L2 begrensd wordt.",
+          "phase_limit_l2": "Wat L2 maximaal mag dragen. Meestal je hoofdzekering.",
+          "phase_sensor_l3": "De stroom op L3 zoals je netmeter die meet. Leeg laten betekent dat niets op L3 begrensd wordt.",
+          "phase_limit_l3": "Wat L3 maximaal mag dragen. Meestal je hoofdzekering."
         }
       }
     }
@@ -64,8 +88,7 @@
             "min_on": "Minimale aan-tijd",
             "min_off": "Minimale uit-tijd",
             "power_sensor": "Vermogenssensor (optioneel)",
-            "phase_sensor": "Fasestroomsensor (optioneel)",
-            "phase_limit": "Fasegrens"
+            "phase": "Fase"
           },
           "data_description": {
             "number_entity": "Een number-entiteit die je hoger en lager kunt zetten. Nul is uit, dus een schakelaar is niet nodig.",
@@ -76,8 +99,7 @@
             "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
             "min_off": "Eenmaal gestopt minstens zo lang uit laten.",
             "power_sensor": "Wat dit apparaat werkelijk verbruikt. Sterk aangeraden: zonder deze nemen we aan dat een apparaat alles gebruikt wat het mag, en dan wordt het vermogen van een boiler waarvan de thermostaat is uitgevallen dubbel geteld.",
-            "phase_sensor": "De stroom op de fase waar dit apparaat op zit, zoals de netmeter die meet. Hiermee start het apparaat niet als de fase daardoor over de grens gaat, en gaat het meteen uit als de fase erover zit, ook binnen de minimale aan-tijd.",
-            "phase_limit": "Maximale stroom op die fase. Meestal je hoofdzekering."
+            "phase": "De fase waar dit apparaat op zit. Het start niet als de fase daardoor over de grens gaat, en gaat meteen uit als de fase erover zit, ook binnen de minimale aan-tijd."
           }
         },
         "reconfigure": {
@@ -92,8 +114,7 @@
             "min_on": "Minimale aan-tijd",
             "min_off": "Minimale uit-tijd",
             "power_sensor": "Vermogenssensor (optioneel)",
-            "phase_sensor": "Fasestroomsensor (optioneel)",
-            "phase_limit": "Fasegrens"
+            "phase": "Fase"
           },
           "data_description": {
             "number_entity": "Een number-entiteit die je hoger en lager kunt zetten. Nul is uit, dus een schakelaar is niet nodig.",
@@ -104,8 +125,7 @@
             "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
             "min_off": "Eenmaal gestopt minstens zo lang uit laten.",
             "power_sensor": "Wat dit apparaat werkelijk verbruikt. Sterk aangeraden: zonder deze nemen we aan dat een apparaat alles gebruikt wat het mag, en dan wordt het vermogen van een boiler waarvan de thermostaat is uitgevallen dubbel geteld.",
-            "phase_sensor": "De stroom op de fase waar dit apparaat op zit, zoals de netmeter die meet. Hiermee start het apparaat niet als de fase daardoor over de grens gaat, en gaat het meteen uit als de fase erover zit, ook binnen de minimale aan-tijd.",
-            "phase_limit": "Maximale stroom op die fase. Meestal je hoofdzekering."
+            "phase": "De fase waar dit apparaat op zit. Het start niet als de fase daardoor over de grens gaat, en gaat meteen uit als de fase erover zit, ook binnen de minimale aan-tijd."
           }
         }
       },
@@ -128,6 +148,16 @@
     "switch": {
       "managed": {
         "name": "Wordt gestuurd"
+      }
+    }
+  },
+  "selector": {
+    "phase": {
+      "options": {
+        "none": "Niet begrensd",
+        "L1": "L1",
+        "L2": "L2",
+        "L3": "L3"
       }
     }
   }

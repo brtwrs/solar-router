@@ -37,15 +37,21 @@ class Consumer:
     allocated: float = 0.0  # what the dial is set to right now
     measured: float | None = None  # what it actually draws, if we can see it
     held: bool = False  # inside its minimum on/off window
-    # Optional fuse guard. phase_current is what the phase carries right now,
-    # this consumer included; phase_limit is what it may carry.
-    phase_current: float | None = None
-    phase_limit: float | None = None
+    # Which phase it is on ("L1", "L2", "L3"), or None when it does not matter.
+    phase: str | None = None
 
     @property
     def modulating(self) -> bool:
         """A dial makes it modulating, with or without a switch beside it."""
         return self.has_number
+
+
+@dataclass
+class Phase:
+    """One phase of the connection: what it carries now and what it may carry."""
+
+    current: float  # amps, everything on the phase included
+    limit: float  # amps, usually the main fuse
 
 
 @dataclass
@@ -136,30 +142,27 @@ def _eigen_draw(c: Consumer) -> float:
     return (c.power_max or c.power_min) if c.currently_on else 0.0
 
 
-def _fase_ruimte(c: Consumer) -> float | None:
+def _fase_ruimte(c: Consumer, fase: Phase | None, extra: float) -> float | None:
     """Watts this consumer may draw before its phase passes the limit.
 
-    None when no limit is configured. What the rest of the phase draws is the
-    measured phase current minus our own share, so switching ourselves off
-    does not count against us.
+    None when its phase has no limit. What the rest of the phase draws is the
+    measured current minus our own share, so switching ourselves off does not
+    count against us. extra is what consumers decided earlier this cycle have
+    added on the same phase, in amps: they share the one fuse.
     """
-    if c.phase_current is None or not c.phase_limit:
+    if fase is None:
         return None
-    anderen = max(0.0, c.phase_current - _eigen_draw(c) / VOLT)
-    return max(0.0, (c.phase_limit - anderen) * VOLT)
+    anderen = max(0.0, fase.current - _eigen_draw(c) / VOLT) + extra
+    return max(0.0, (fase.limit - anderen) * VOLT)
 
 
-def _fase_over(c: Consumer) -> bool:
+def _fase_over(fase: Phase | None) -> bool:
     """Report whether the phase is above its limit right now."""
-    return (
-        c.phase_current is not None
-        and bool(c.phase_limit)
-        and c.phase_current > c.phase_limit
-    )
+    return fase is not None and fase.current > fase.limit
 
 
 def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
-    c: Consumer, remaining: float
+    c: Consumer, remaining: float, fase: Phase | None = None, extra: float = 0.0
 ) -> Decision:
     """Work out what this consumer gets from what is left."""
     if not c.managed:
@@ -167,10 +170,10 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
 
     # The fuse comes before the sun and before the minimum on time: a phase
     # over its limit is not something to sit out for five minutes.
-    ruimte = _fase_ruimte(c)
+    ruimte = _fase_ruimte(c, fase, extra)
     if ruimte is not None:
         remaining = min(remaining, ruimte)
-    if _fase_over(c):
+    if _fase_over(fase):
         d = Decision(c.key, 0.0, "phase limit", claim=0.0)
         if c.modulating and c.allocated:
             d.number_value = 0.0
@@ -242,15 +245,32 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
     )
 
 
-def allocate(budget: float, consumers: list[Consumer]) -> list[Decision]:
-    """Hand the budget out in priority order (lower number first)."""
+def allocate(
+    budget: float,
+    consumers: list[Consumer],
+    phases: dict[str, Phase] | None = None,
+) -> list[Decision]:
+    """Hand the budget out in priority order (lower number first).
+
+    phases holds the phases that have a limit. A consumer on one of them never
+    gets more than its phase has room for, and what one consumer adds is
+    taken off the room of the next one on the same phase.
+    """
+    phases = phases or {}
     decisions: list[Decision] = []
     remaining = budget
+    extra: dict[str, float] = {}
 
     for c in sorted(consumers, key=lambda x: x.priority):
-        d = _decide_one(c, remaining)
+        fase = phases.get(c.phase) if c.phase else None
+        d = _decide_one(c, remaining, fase, extra.get(c.phase or "", 0.0))
         decisions.append(d)
         remaining -= d.claim
+        if fase is not None:
+            # Only what it adds: a consumer that stops is still drawing until
+            # the meter says otherwise, so its room is not handed out yet.
+            erbij = max(0.0, d.claim - _eigen_draw(c)) / VOLT
+            extra[c.phase] = extra.get(c.phase, 0.0) + erbij
 
     return decisions
 

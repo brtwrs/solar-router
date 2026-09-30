@@ -18,16 +18,23 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .allocator import Consumer, allocate, budget_from, should_settle, unused
+from .allocator import (
+    Consumer,
+    Phase,
+    allocate,
+    budget_from,
+    should_settle,
+    unused,
+)
 from .const import (
     CONF_GRID_EXPORT_IS_NEGATIVE,
     CONF_GRID_SENSOR,
     CONF_INTERVAL,
     CONF_MIN_OFF,
     CONF_MIN_ON,
+    CONF_NAME,
     CONF_NUMBER_ENTITY,
-    CONF_PHASE_LIMIT,
-    CONF_PHASE_SENSOR,
+    CONF_PHASE,
     CONF_POWER_MAX,
     CONF_POWER_MIN,
     CONF_POWER_SENSOR,
@@ -44,7 +51,11 @@ from .const import (
     DEFAULT_RESERVE,
     DEFAULT_SETTLE,
     DOMAIN,
+    EVENT_PHASE_LIMIT,
+    PHASES,
     SUBENTRY_TYPE_CONSUMER,
+    conf_phase_limit,
+    conf_phase_sensor,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,6 +138,40 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
         if self._option(CONF_GRID_EXPORT_IS_NEGATIVE, DEFAULT_EXPORT_IS_NEGATIVE):
             value = -value
         return value
+
+    def _meld_fasegrens(self, cfg: dict[str, Any], key: str) -> None:
+        """Tell the rest of Home Assistant that a phase limit cut something off."""
+        fase = cfg.get(CONF_PHASE)
+        stroom = self._numeric(self._option(conf_phase_sensor(fase), None))
+        self.hass.bus.async_fire(
+            EVENT_PHASE_LIMIT,
+            {
+                "consumer": cfg.get(CONF_NAME, key),
+                "phase": fase,
+                "current": stroom,
+                "limit": float(
+                    self._option(conf_phase_limit(fase), DEFAULT_PHASE_LIMIT)
+                ),
+            },
+        )
+
+    def _read_phases(self) -> dict[str, Phase]:
+        """Phases that have a readable current sensor, with their limit.
+
+        A phase whose sensor is missing or unreadable is left out, so nothing
+        on it is limited. Better that than switching everything off on a
+        sensor that has gone unavailable.
+        """
+        fasen: dict[str, Phase] = {}
+        for fase in PHASES:
+            stroom = self._numeric(self._option(conf_phase_sensor(fase), None))
+            if stroom is None:
+                continue
+            grens = float(
+                self._option(conf_phase_limit(fase), DEFAULT_PHASE_LIMIT)
+            )
+            fasen[fase] = Phase(current=abs(stroom), limit=grens)
+        return fasen
 
     def _subentries(self) -> list[ConfigSubentry]:
         """Return the consumer subentries, ignoring any other type."""
@@ -266,11 +311,8 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                     allocated=actual,
                     measured=self._numeric(cfg.get(CONF_POWER_SENSOR)),
                     held=self._held(st, hold),
-                    phase_current=self._numeric(cfg.get(CONF_PHASE_SENSOR)),
-                    phase_limit=(
-                        float(cfg.get(CONF_PHASE_LIMIT, DEFAULT_PHASE_LIMIT))
-                        if cfg.get(CONF_PHASE_SENSOR)
-                        else None
+                    phase=(
+                        cfg.get(CONF_PHASE) if cfg.get(CONF_PHASE) in PHASES else None
                     ),
                 )
             )
@@ -287,7 +329,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
             grid, already, float(self._option(CONF_RESERVE, DEFAULT_RESERVE))
         )
 
-        decisions = allocate(budget, consumers)
+        decisions = allocate(budget, consumers, self._read_phases())
 
         data = RouterData(surplus=grid, budget=budget)
         for d in decisions:
@@ -301,6 +343,13 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                 await self._set_number(cfg[CONF_NUMBER_ENTITY], d.number_value)
                 st.last_change = dt_util.utcnow()
                 self._last_action = st.last_change.timestamp()
+
+            if d.reason == "phase limit" and (
+                d.switch_on is False or d.number_value == 0
+            ):
+                # Only when we actually take something away: not every cycle
+                # that a start is refused, or you would be flooded.
+                self._meld_fasegrens(cfg, d.key)
 
             if d.switch_on is not None and cfg.get(CONF_SWITCH_ENTITY):
                 await self._set_switch(cfg[CONF_SWITCH_ENTITY], d.switch_on)
