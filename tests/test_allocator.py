@@ -405,3 +405,54 @@ def test_small_device_keeps_a_sane_floor():
 def test_normal_values_are_untouched_by_the_dead_zone():
     d = by_key(allocate(2000, [dial("boiler", pmax=3000, allocated=0)]))["boiler"]
     assert d.allocated == 2000
+
+
+# --------------------------------------------------------------- phase limit
+# 30 sep 2026: de auto (2100 W, L2) werd binnen zijn minimale aan-tijd
+# vastgehouden terwijl de huurder op dezelfde fase kookte, en L2 trok 26 A op
+# een zekering van 25 A. Bart zette hem met de hand uit.
+
+
+def test_phase_over_limit_switches_off_even_when_held():
+    car = relay("car", rated=2100, currently_on=True, held=True,
+                phase_current=26, phase_limit=25)
+    d = by_key(allocate(5000, [car]))["car"]
+    assert d.switch_on is False
+    assert d.reason == "phase limit"
+    assert d.claim == 0
+
+
+def test_phase_without_room_does_not_start():
+    # 17 A op de fase zonder de auto, plus 9,1 A voor de auto = boven 25 A
+    car = relay("car", rated=2100, phase_current=17, phase_limit=25)
+    d = by_key(allocate(5000, [car]))["car"]
+    assert d.switch_on is None
+    assert d.reason == "phase limit"
+
+
+def test_phase_with_room_starts_as_usual():
+    car = relay("car", rated=2100, phase_current=10, phase_limit=25)
+    d = by_key(allocate(5000, [car]))["car"]
+    assert d.switch_on is True
+
+
+def test_own_draw_does_not_count_against_itself():
+    # 24 A inclusief de eigen 9,1 A: onder de grens, dus gewoon aan laten
+    car = relay("car", rated=2100, currently_on=True, measured=2100,
+                phase_current=24, phase_limit=25)
+    d = by_key(allocate(5000, [car]))["car"]
+    assert d.switch_on is None
+    assert d.allocated == 2100
+
+
+def test_phase_caps_a_dial():
+    # 20 A van anderen laat 5 A = 1150 W over voor een modulerende boiler
+    boiler = dial("boiler", pmax=3000, phase_current=20, phase_limit=25)
+    d = by_key(allocate(5000, [boiler]))["boiler"]
+    assert d.allocated == 5 * 230
+
+
+def test_no_phase_sensor_means_no_limit():
+    car = relay("car", rated=2100, currently_on=True, held=True)
+    d = by_key(allocate(-3000, [car]))["car"]
+    assert d.reason == "held on"

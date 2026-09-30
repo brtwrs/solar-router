@@ -25,6 +25,8 @@ from .const import (
     CONF_MIN_ON,
     CONF_NAME,
     CONF_NUMBER_ENTITY,
+    CONF_PHASE_LIMIT,
+    CONF_PHASE_SENSOR,
     CONF_POWER_MAX,
     CONF_POWER_MIN,
     CONF_POWER_SENSOR,
@@ -36,6 +38,7 @@ from .const import (
     DEFAULT_INTERVAL,
     DEFAULT_MIN_OFF,
     DEFAULT_MIN_ON,
+    DEFAULT_PHASE_LIMIT,
     DEFAULT_PRIORITY,
     DEFAULT_RESERVE,
     DEFAULT_SETTLE,
@@ -210,6 +213,22 @@ class ConsumerSubentryFlow(ConfigSubentryFlow):
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=0, max=7200, step=30, unit_of_measurement="s", mode="box"
+                    )
+                ),
+                vol.Optional(
+                    CONF_PHASE_SENSOR,
+                    description={"suggested_value": d.get(CONF_PHASE_SENSOR)},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="current"
+                    )
+                ),
+                vol.Required(
+                    CONF_PHASE_LIMIT,
+                    default=d.get(CONF_PHASE_LIMIT, DEFAULT_PHASE_LIMIT),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=1, max=80, step=1, unit_of_measurement="A", mode="box"
                     )
                 ),
             }

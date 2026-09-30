@@ -63,7 +63,9 @@
             "priority": "Prioriteit",
             "min_on": "Minimale aan-tijd",
             "min_off": "Minimale uit-tijd",
-            "power_sensor": "Vermogenssensor (optioneel)"
+            "power_sensor": "Vermogenssensor (optioneel)",
+            "phase_sensor": "Fasestroomsensor (optioneel)",
+            "phase_limit": "Fasegrens"
           },
           "data_description": {
             "number_entity": "Een number-entiteit die je hoger en lager kunt zetten. Nul is uit, dus een schakelaar is niet nodig.",
@@ -73,7 +75,9 @@
             "priority": "Laagste getal wint. Wordt eerder bediend dan hogere getallen.",
             "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
             "min_off": "Eenmaal gestopt minstens zo lang uit laten.",
-            "power_sensor": "Wat dit apparaat werkelijk verbruikt. Sterk aangeraden: zonder deze nemen we aan dat een apparaat alles gebruikt wat het mag, en dan wordt het vermogen van een boiler waarvan de thermostaat is uitgevallen dubbel geteld."
+            "power_sensor": "Wat dit apparaat werkelijk verbruikt. Sterk aangeraden: zonder deze nemen we aan dat een apparaat alles gebruikt wat het mag, en dan wordt het vermogen van een boiler waarvan de thermostaat is uitgevallen dubbel geteld.",
+            "phase_sensor": "De stroom op de fase waar dit apparaat op zit, zoals de netmeter die meet. Hiermee start het apparaat niet als de fase daardoor over de grens gaat, en gaat het meteen uit als de fase erover zit, ook binnen de minimale aan-tijd.",
+            "phase_limit": "Maximale stroom op die fase. Meestal je hoofdzekering."
           }
         },
         "reconfigure": {
@@ -87,7 +91,9 @@
             "priority": "Prioriteit",
             "min_on": "Minimale aan-tijd",
             "min_off": "Minimale uit-tijd",
-            "power_sensor": "Vermogenssensor (optioneel)"
+            "power_sensor": "Vermogenssensor (optioneel)",
+            "phase_sensor": "Fasestroomsensor (optioneel)",
+            "phase_limit": "Fasegrens"
           },
           "data_description": {
             "number_entity": "Een number-entiteit die je hoger en lager kunt zetten. Nul is uit, dus een schakelaar is niet nodig.",
@@ -97,7 +103,9 @@
             "priority": "Laagste getal wint. Wordt eerder bediend dan hogere getallen.",
             "min_on": "Eenmaal gestart minstens zo lang door laten lopen.",
             "min_off": "Eenmaal gestopt minstens zo lang uit laten.",
-            "power_sensor": "Wat dit apparaat werkelijk verbruikt. Sterk aangeraden: zonder deze nemen we aan dat een apparaat alles gebruikt wat het mag, en dan wordt het vermogen van een boiler waarvan de thermostaat is uitgevallen dubbel geteld."
+            "power_sensor": "Wat dit apparaat werkelijk verbruikt. Sterk aangeraden: zonder deze nemen we aan dat een apparaat alles gebruikt wat het mag, en dan wordt het vermogen van een boiler waarvan de thermostaat is uitgevallen dubbel geteld.",
+            "phase_sensor": "De stroom op de fase waar dit apparaat op zit, zoals de netmeter die meet. Hiermee start het apparaat niet als de fase daardoor over de grens gaat, en gaat het meteen uit als de fase erover zit, ook binnen de minimale aan-tijd.",
+            "phase_limit": "Maximale stroom op die fase. Meestal je hoofdzekering."
           }
         }
       },

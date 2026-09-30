@@ -16,6 +16,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# Mains voltage, to turn watts into amps on a phase. Close enough for a limit
+# that is meant to keep a fuse from blowing, not to bill anyone.
+VOLT = 230.0
+
 
 @dataclass
 class Consumer:
@@ -33,6 +37,10 @@ class Consumer:
     allocated: float = 0.0  # what the dial is set to right now
     measured: float | None = None  # what it actually draws, if we can see it
     held: bool = False  # inside its minimum on/off window
+    # Optional fuse guard. phase_current is what the phase carries right now,
+    # this consumer included; phase_limit is what it may carry.
+    phase_current: float | None = None
+    phase_limit: float | None = None
 
     @property
     def modulating(self) -> bool:
@@ -119,12 +127,56 @@ def _dode_zone(c: Consumer) -> float:
     return max(10.0, c.power_max * 0.01)
 
 
+def _eigen_draw(c: Consumer) -> float:
+    """Return what this consumer itself puts on its phase now, in watts."""
+    if c.measured is not None:
+        return max(0.0, c.measured)
+    if c.modulating:
+        return c.allocated if (c.currently_on or not c.has_switch) else 0.0
+    return (c.power_max or c.power_min) if c.currently_on else 0.0
+
+
+def _fase_ruimte(c: Consumer) -> float | None:
+    """Watts this consumer may draw before its phase passes the limit.
+
+    None when no limit is configured. What the rest of the phase draws is the
+    measured phase current minus our own share, so switching ourselves off
+    does not count against us.
+    """
+    if c.phase_current is None or not c.phase_limit:
+        return None
+    anderen = max(0.0, c.phase_current - _eigen_draw(c) / VOLT)
+    return max(0.0, (c.phase_limit - anderen) * VOLT)
+
+
+def _fase_over(c: Consumer) -> bool:
+    """Report whether the phase is above its limit right now."""
+    return (
+        c.phase_current is not None
+        and bool(c.phase_limit)
+        and c.phase_current > c.phase_limit
+    )
+
+
 def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
     c: Consumer, remaining: float
 ) -> Decision:
     """Work out what this consumer gets from what is left."""
     if not c.managed:
         return Decision(c.key, 0.0, "not managed", claim=0.0)
+
+    # The fuse comes before the sun and before the minimum on time: a phase
+    # over its limit is not something to sit out for five minutes.
+    ruimte = _fase_ruimte(c)
+    if ruimte is not None:
+        remaining = min(remaining, ruimte)
+    if _fase_over(c):
+        d = Decision(c.key, 0.0, "phase limit", claim=0.0)
+        if c.modulating and c.allocated:
+            d.number_value = 0.0
+        if c.has_switch and c.currently_on:
+            d.switch_on = False
+        return d
 
     if c.modulating:
         doel = max(0.0, min(c.power_max, remaining))
@@ -181,6 +233,9 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
 
     if remaining >= rated and not c.held:
         return Decision(c.key, rated, "surplus available", switch_on=True, claim=rated)
+
+    if ruimte is not None and ruimte < rated and not c.held:
+        return Decision(c.key, 0.0, "phase limit", claim=0.0)
 
     return Decision(
         c.key, 0.0, "held off" if c.held else "waiting for surplus", claim=0.0

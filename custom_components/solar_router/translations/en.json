@@ -63,7 +63,9 @@
             "priority": "Priority",
             "min_on": "Minimum on time",
             "min_off": "Minimum off time",
-            "power_sensor": "Power sensor (optional)"
+            "power_sensor": "Power sensor (optional)",
+            "phase_sensor": "Phase current sensor (optional)",
+            "phase_limit": "Phase limit"
           },
           "data_description": {
             "number_entity": "A number entity you can dial up and down. Zero means off, so a switch is not required.",
@@ -73,7 +75,9 @@
             "priority": "Lower number wins. Served before higher numbers.",
             "min_on": "Once started, keep it running at least this long.",
             "min_off": "Once stopped, leave it off at least this long.",
-            "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice."
+            "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice.",
+            "phase_sensor": "The current on the phase this device is on, as the grid meter measures it. With it, the device will not start if that would push the phase over the limit, and is switched off at once when the phase is over it, minimum on time or not.",
+            "phase_limit": "Maximum current on that phase. Usually your main fuse."
           }
         },
         "reconfigure": {
@@ -87,7 +91,9 @@
             "priority": "Priority",
             "min_on": "Minimum on time",
             "min_off": "Minimum off time",
-            "power_sensor": "Power sensor (optional)"
+            "power_sensor": "Power sensor (optional)",
+            "phase_sensor": "Phase current sensor (optional)",
+            "phase_limit": "Phase limit"
           },
           "data_description": {
             "number_entity": "A number entity you can dial up and down. Zero means off, so a switch is not required.",
@@ -97,7 +103,9 @@
             "priority": "Lower number wins. Served before higher numbers.",
             "min_on": "Once started, keep it running at least this long.",
             "min_off": "Once stopped, leave it off at least this long.",
-            "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice."
+            "power_sensor": "What this device actually draws. Strongly recommended: without it we assume a device uses everything it is allowed, and a boiler whose thermostat has cut out would have its power counted twice.",
+            "phase_sensor": "The current on the phase this device is on, as the grid meter measures it. With it, the device will not start if that would push the phase over the limit, and is switched off at once when the phase is over it, minimum on time or not.",
+            "phase_limit": "Maximum current on that phase. Usually your main fuse."
           }
         }
       },

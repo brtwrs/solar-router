@@ -26,6 +26,8 @@ from .const import (
     CONF_MIN_OFF,
     CONF_MIN_ON,
     CONF_NUMBER_ENTITY,
+    CONF_PHASE_LIMIT,
+    CONF_PHASE_SENSOR,
     CONF_POWER_MAX,
     CONF_POWER_MIN,
     CONF_POWER_SENSOR,
@@ -37,6 +39,7 @@ from .const import (
     DEFAULT_INTERVAL,
     DEFAULT_MIN_OFF,
     DEFAULT_MIN_ON,
+    DEFAULT_PHASE_LIMIT,
     DEFAULT_PRIORITY,
     DEFAULT_RESERVE,
     DEFAULT_SETTLE,
@@ -263,6 +266,12 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                     allocated=actual,
                     measured=self._numeric(cfg.get(CONF_POWER_SENSOR)),
                     held=self._held(st, hold),
+                    phase_current=self._numeric(cfg.get(CONF_PHASE_SENSOR)),
+                    phase_limit=(
+                        float(cfg.get(CONF_PHASE_LIMIT, DEFAULT_PHASE_LIMIT))
+                        if cfg.get(CONF_PHASE_SENSOR)
+                        else None
+                    ),
                 )
             )
 

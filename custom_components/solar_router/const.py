@@ -31,10 +31,13 @@ CONF_POWER_MAX: Final = "power_max"
 CONF_PRIORITY: Final = "priority"
 CONF_MIN_ON: Final = "min_on"
 CONF_MIN_OFF: Final = "min_off"
+CONF_PHASE_SENSOR: Final = "phase_sensor"
+CONF_PHASE_LIMIT: Final = "phase_limit"
 
 DEFAULT_PRIORITY: Final = 50
 DEFAULT_MIN_ON: Final = 300
 DEFAULT_MIN_OFF: Final = 300
+DEFAULT_PHASE_LIMIT: Final = 25
 
 # --- reasons reported alongside an allocation ---
 # The allocator has its own set; this one is decided here because the allocator
