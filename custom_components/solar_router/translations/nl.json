@@ -146,6 +146,9 @@
       }
     },
     "switch": {
+      "force": {
+        "name": "Altijd aan"
+      },
       "managed": {
         "name": "Wordt gestuurd"
       }

@@ -32,6 +32,9 @@ class Consumer:
     has_number: bool = False
     has_switch: bool = False
     managed: bool = True
+    # Run regardless of the sun, but still under the phase limit. Bart, 13 okt:
+    # forcing used to mean "not managed", and that switched the fuse guard off too.
+    forced: bool = False
     # runtime
     currently_on: bool = False
     allocated: float = 0.0  # what the dial is set to right now
@@ -181,6 +184,9 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
             d.switch_on = False
         return d
 
+    if c.forced:
+        return _decide_forced(c, ruimte)
+
     if c.modulating:
         doel = max(0.0, min(c.power_max, remaining))
         give = doel
@@ -243,6 +249,43 @@ def _decide_one(  # noqa: PLR0911 - elke return is een apart, benoemd geval
     return Decision(
         c.key, 0.0, "held off" if c.held else "waiting for surplus", claim=0.0
     )
+
+
+def _decide_forced(c: Consumer, ruimte: float | None) -> Decision:
+    """Run flat out whatever the sun does, as far as the phase allows.
+
+    Only called when the phase is not over its limit. It starts again by
+    itself once the rest of the phase has dropped far enough to fit it, after
+    its minimum off time.
+    """
+    kan = c.power_max if ruimte is None else min(c.power_max, ruimte)
+
+    if c.modulating:
+        give = kan if kan >= max(c.power_min, _dode_zone(c)) else 0.0
+        d = Decision(c.key, give, "forced" if give else "phase limit")
+        d.claim = _claim_for(c, give)
+        if abs(give - c.allocated) >= 1:
+            d.number_value = give
+        if c.has_switch and (give > 0) != c.currently_on:
+            if c.held:
+                d.reason = "held on" if c.currently_on else "held off"
+                if not c.currently_on:
+                    d.allocated, d.number_value, d.claim = 0.0, None, 0.0
+                return d
+            d.switch_on = give > 0
+        return d
+
+    rated = c.power_max or c.power_min
+    if c.currently_on:
+        # Already running: only the phase limit (handled before) stops it.
+        d = Decision(c.key, rated, "forced")
+        d.claim = _claim_for(c, rated)
+        return d
+    if c.held:
+        return Decision(c.key, 0.0, "held off", claim=0.0)
+    if ruimte is not None and ruimte < rated:
+        return Decision(c.key, 0.0, "phase limit", claim=0.0)
+    return Decision(c.key, rated, "forced", switch_on=True, claim=rated)
 
 
 def allocate(

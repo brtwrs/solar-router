@@ -146,6 +146,9 @@
       }
     },
     "switch": {
+      "force": {
+        "name": "Force on"
+      },
       "managed": {
         "name": "Managed"
       }

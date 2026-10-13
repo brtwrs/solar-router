@@ -471,3 +471,82 @@ def test_other_phase_is_not_limited():
 def test_no_phase_means_no_limit():
     car = relay("car", rated=2100, currently_on=True, held=True)
     assert by_key(allocate(-3000, [car], l2(26)))["car"].reason == "held on"
+
+
+# --------------------------------------------------------------- forced
+# Bart, 13 okt: geforceerd laden is ondergeschikt aan overbelasting, en zodra de
+# rest weer inzakt mag hij weer aan. L2 stond op 30 A met de auto geforceerd.
+
+
+def test_forced_starts_without_surplus():
+    car = relay("car", rated=2100, forced=True, phase="L2")
+    d = by_key(allocate(-5000, [car], l2(5)))["car"]
+    assert d.switch_on is True
+    assert d.reason == "forced"
+
+
+def test_forced_keeps_running_while_importing():
+    car = relay(
+        "car", rated=2100, forced=True, currently_on=True, measured=2000, phase="L2"
+    )
+    d = by_key(allocate(-5000, [car], l2(20)))["car"]
+    assert d.switch_on is None
+    assert d.reason == "forced"
+
+
+def test_forced_is_switched_off_over_the_phase_limit():
+    car = relay(
+        "car",
+        rated=2100,
+        forced=True,
+        currently_on=True,
+        held=True,
+        measured=1942,
+        phase="L2",
+    )
+    d = by_key(allocate(-5000, [car], l2(30)))["car"]
+    assert d.switch_on is False
+    assert d.reason == "phase limit"
+
+
+def test_forced_waits_while_the_rest_fills_the_phase():
+    # het geval van 13 okt: 21 A zonder de auto, de auto erbij komt boven 25 A
+    car = relay("car", rated=2100, forced=True, phase="L2")
+    d = by_key(allocate(-5000, [car], l2(21)))["car"]
+    assert d.switch_on is None
+    assert d.reason == "phase limit"
+
+
+def test_forced_starts_again_once_the_rest_drops():
+    car = relay("car", rated=2100, forced=True, phase="L2")
+    assert by_key(allocate(-5000, [car], l2(12)))["car"].switch_on is True
+
+
+def test_forced_respects_min_off_after_a_cut():
+    car = relay("car", rated=2100, forced=True, held=True, phase="L2")
+    d = by_key(allocate(-5000, [car], l2(5)))["car"]
+    assert d.switch_on is None
+    assert d.reason == "held off"
+
+
+def test_forced_unmanaged_is_left_alone():
+    car = relay(
+        "car", rated=2100, forced=True, managed=False, currently_on=True, phase="L2"
+    )
+    assert by_key(allocate(-5000, [car], l2(30)))["car"].reason == "not managed"
+
+
+def test_forced_dial_runs_up_to_phase_room():
+    boiler = dial("boiler", pmax=3000, forced=True, phase="L2")
+    d = by_key(allocate(-5000, [boiler], l2(20)))["boiler"]
+    assert d.allocated == 5 * 230
+    assert d.reason == "forced"
+
+
+def test_forced_claim_leaves_surplus_for_the_next():
+    car = relay(
+        "car", priority=10, rated=2100, forced=True, currently_on=True, measured=2100
+    )
+    boiler = dial("boiler", priority=20, pmax=3000)
+    d = by_key(allocate(3000, [car, boiler]))
+    assert d["boiler"].allocated == 900

@@ -9,6 +9,9 @@
       }
     },
     "switch": {
+      "force": {
+        "default": "mdi:flash-alert"
+      },
       "managed": {
         "default": "mdi:robot",
         "state": {

@@ -70,6 +70,7 @@ class ConsumerState:
     allocated: float = 0.0
     claim: float = 0.0
     managed: bool = True
+    forced: bool = False
     last_change: datetime | None = None
     reason: str = "idle"
 
@@ -307,6 +308,7 @@ class SolarRouterCoordinator(DataUpdateCoordinator[RouterData]):
                     has_number=bool(number_entity),
                     has_switch=bool(switch_entity),
                     managed=st.managed,
+                    forced=st.forced,
                     currently_on=on_now,
                     allocated=actual,
                     measured=self._numeric(cfg.get(CONF_POWER_SENSOR)),
