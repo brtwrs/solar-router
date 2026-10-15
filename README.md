@@ -77,6 +77,44 @@ then, so the order keeps holding as the day moves. With the boiler first:
 Each consumer also has a **Managed** switch. Turning it off takes that consumer
 off the list entirely, and everything below it moves up.
 
+## Staying under your main fuse
+
+Surplus is not the only limit. A 3 kW boiler and a 3.7 kW charger on the same
+phase, with the kitchen running, can trip a 25 A fuse while the roof is still
+exporting on the other two phases.
+
+Give the hub a current sensor for each phase you want guarded, plus its limit,
+and tell each consumer which phase it is on. The router then:
+
+- **won't start** a consumer when that would push its phase over the limit, and
+  dials a modulating one down to what still fits;
+- **switches it off straight away** when the phase is over its limit, whatever
+  caused it. The fuse comes first, even before the minimum on time.
+- counts the consumers it starts in the same cycle against each other, because
+  they share the one fuse.
+
+The phase room is worked out as `limit − (measured current − this consumer's
+own draw)`. A consumer is not held responsible for the current it causes
+itself. Every time the limit actually cuts something off, the router fires a
+`solar_router_phase_limit` event with the consumer, phase, current and limit, so
+you can hang a notification on it.
+
+A phase without a sensor, or with one that can't be read, is simply not
+limited. Neither is a consumer set to **Not limited**.
+
+## Forcing a consumer
+
+Sometimes you want the car charged by tomorrow morning, sun or not. Each
+consumer has a **Force on** switch for that. A forced consumer runs at its
+maximum regardless of the surplus, **but still under its phase limit**: if the
+phase goes over, it is switched off like anything else and starts again by
+itself once there is room, after its minimum off time.
+
+That is the difference from switching **Managed** off and running the device by
+hand: then the router lets go of it entirely, phase guard included. Force on
+survives a Home Assistant restart, so a forced charge doesn't quietly stop
+halfway through the night.
+
 ## How the budget is worked out
 
 ```
@@ -158,6 +196,8 @@ Then **Settings → Devices & Services → Add integration → Solar Router**.
 The hub asks for one thing that matters: the sensor reporting your grid power.
 Tell it whether export shows up as a negative number (usually it does). You can
 also hold back a reserve in watts as a buffer, and set how often to recalculate.
+Optionally, give it a current sensor and a limit (default 25 A) per phase; see
+[Staying under your main fuse](#staying-under-your-main-fuse).
 
 Add consumers with the **+** on the integration page:
 
@@ -169,10 +209,11 @@ Add consumers with the **+** on the integration page:
 | Maximum power | The ceiling. For on/off devices, what it draws when running |
 | Priority | **The lower number goes first** |
 | Minimum on/off time | Stops relays chattering |
+| Phase | L1, L2 or L3 to keep it under that phase's limit, or **Not limited** |
 
-Every consumer becomes its own device with two entities: the power currently
-routed to it, and a **Managed** switch for taking it off the list when you want
-to run it by hand.
+Every consumer becomes its own device with three entities: the power currently
+routed to it, a **Managed** switch for taking it off the list when you want to
+run it by hand, and a **Force on** switch for running it whatever the sun does.
 
 ## A worked example
 
@@ -198,7 +239,7 @@ right](#getting-the-timing-right).
 
 ## When it deliberately does nothing
 
-Three situations, all visible in the hub sensor's attributes:
+Four situations, all visible in the hub sensor's attributes:
 
 - **Waiting for a fresh reading.** Right after acting, the meter still describes
   the world as it was. Deciding twice on the same measurement is how a
@@ -206,6 +247,8 @@ Three situations, all visible in the hub sensor's attributes:
   `settling: true`.
 - **Inside a minimum on/off window.** The consumer shows `held on` or
   `held off`.
+- **Its phase has no room.** The consumer shows `phase limit`, also when it is
+  forced.
 - **The grid sensor can't be read.** The entities go unavailable and nothing is
   touched — consumers keep their last setpoint instead of being driven on a
   guess. The log names the sensor.
@@ -215,8 +258,8 @@ Three situations, all visible in the hub sensor's attributes:
 - **An on/off consumer only starts when its full draw fits.** With 1900 W spare
   and a 2100 W charger, nothing happens and the surplus goes to the grid.
 - **One hub per Home Assistant.** It assumes a single grid connection.
-- **Consumer state isn't kept across a restart.** Managed switches come back on
-  and the timers start fresh, although the router reads what your devices are
+- **Most consumer state isn't kept across a restart.** Managed switches come
+  back on and the timers start fresh (Force on is the exception), although the router reads what your devices are
   actually set to rather than trusting its own bookkeeping.
 - **No battery support yet.** A battery isn't just another consumer: it has a
   charge level, a ceiling, and round-trip losses.
@@ -233,6 +276,7 @@ per-consumer `allocations` show exactly what the last cycle decided, and why.
 | `settling: true` and nothing moving | Waiting for a fresher meter reading. Lower the settle time, or accept that your meter is slow. |
 | A consumer stuck on `held on` / `held off` | Its minimum on/off time hasn't elapsed. |
 | Surplus available but an on/off device idle | Its full draw doesn't fit in what's left. |
+| A consumer on `phase limit` | Its phase is at or over the limit, or starting it would put it there. Check the phase current sensor. |
 | Everything oscillating | Your interval or settle time is shorter than the loop's dead time. See [Getting the timing right](#getting-the-timing-right). |
 
 For a bug report, use **Settings → Devices & Services → Solar Router → ⋮ →
@@ -260,7 +304,7 @@ The allocation logic lives in `allocator.py` and imports nothing from Home
 Assistant, so it runs on its own:
 
 ```bash
-python -m pytest tests/ -q     # 48 tests
+python -m pytest tests/ -q     # 62 tests
 ruff check . && ruff format --check .
 mypy
 ```
@@ -274,6 +318,7 @@ integration quality scale.
 ## Status
 
 Version 0.1.0, a first release, developed and running on Home Assistant 2026.8.
+The phase limits and Force on are on `main` and not in a release yet.
 The 2025.3.0 floor is where the APIs it uses first appeared, not a version it
 has been tested against.
 
